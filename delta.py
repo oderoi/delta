@@ -210,19 +210,130 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
             console.print(f"💡 [italic]Try: {query_history[-1]}[/italic]")
 
 def list_models():
-    """List available models."""
+    """List available models with detailed information."""
     import ollama
-    models = ollama.list()
-    console.print("📋 [bold]Models:[/bold]")
+    from rich.table import Table
+    
+    try:
+        response = ollama.list()
+        models = response.get('models', [])
+    except Exception as e:
+        console.print(f"❌ [red]Error listing models: {str(e)}[/red]")
+        return
+
+    if not models:
+        console.print("ℹ️ [yellow]No models installed. Use 'delta pull <model>' to download one.[/yellow]")
+        return
+
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Model Name", style="cyan", no_wrap=True)
+    table.add_column("Size", justify="right")
+    table.add_column("Modified At", justify="right")
+    table.add_column("Format")
+    table.add_column("Family")
+    table.add_column("Parameters")
+    table.add_column("Quantization")
+
     for model in models:
-        console.print(f"• {model}")
+        # Extract model information
+        name = model.get('model', 'N/A').split(':')[0]
+        size = f"{model.get('size', 0)/1e9:.1f} GB" if model.get('size') else 'N/A'
+        
+        # Handle datetime conversion
+        mod_at = model.get('modified_at')
+        modified_at = mod_at.strftime('%Y-%m-%d %H:%M') if mod_at else 'N/A'
+        
+        # Handle details
+        details = model.get('details', {})
+        fmt = details.get('format', 'N/A')
+        family = details.get('family', 'N/A')
+        params = details.get('parameter_size', 'N/A').replace('B', '') + "B" if details.get('parameter_size') else 'N/A'
+        quant = details.get('quantization_level', 'N/A')
+
+        table.add_row(
+            name,
+            size,
+            modified_at,
+            fmt,
+            family,
+            params,
+            quant
+        )
+
+    console.print("📋 [bold]Installed Models:[/bold]")
+    console.print(table)
 
 def pull_model(model_name):
-    """Download a model."""
+    """Download a model with detailed progress display."""
     import ollama
-    console.print(f"⬇️ [yellow]Downloading {model_name}...[/yellow]")
-    ollama.pull(model_name)
-    console.print(f"✅ [green]{model_name} downloaded![/green]")
+    import time
+    from rich.console import Console
+    console = Console()
+
+    try:
+        start_time = time.time()
+        layers = []
+        downloaded = 0
+        total_size = 0
+
+        # Start download with streaming
+        response = ollama.pull(model_name, stream=True)
+        
+        console.print(f"⬇️ [bold yellow]Downloading {model_name}[/bold yellow]")
+        console.print("[grey50]Initializing download...[/grey50]", end="\r")
+
+        for chunk in response:
+            # Track layers and progress
+            if chunk.get('status') == 'starting':
+                layers.append({
+                    'digest': chunk['digest'],
+                    'total': chunk['total'],
+                    'completed': 0
+                })
+                total_size += chunk['total']
+            
+            if chunk.get('status') == 'downloading':
+                # Update layer progress
+                for layer in layers:
+                    if layer['digest'] == chunk['digest']:
+                        layer['completed'] = chunk['completed']
+                        break
+                
+                # Calculate totals
+                downloaded = sum(l['completed'] for l in layers)
+                elapsed = time.time() - start_time
+                speed = downloaded / elapsed if elapsed > 0 else 0
+                remaining = (total_size - downloaded) / speed if speed > 0 else 0
+
+                # Progress calculations
+                percent = (downloaded / total_size) * 100 if total_size > 0 else 0
+                bar_width = 40
+                filled = int(bar_width * percent / 100)
+                progress_bar = f"[{'='*filled}{' '*(bar_width-filled)}]"
+
+                # Format values
+                downloaded_gb = downloaded / 1e9
+                total_gb = total_size / 1e9
+                speed_mbs = speed / 1e6
+                remaining_str = f"{remaining:.1f}s" if remaining < 3600 else f"{remaining/60:.1f}m"
+
+                # Construct status line
+                status = (
+                    f"[cyan]{model_name}[/cyan] "
+                    f"[green]{percent:.1f}%[/green] "
+                    f"{progress_bar} "
+                    f"[yellow]{downloaded_gb:.2f}/{total_gb:.2f} GB[/yellow] "
+                    f"[magenta]{speed_mbs:.2f} MB/s[/magenta] "
+                    f"[grey50]ETA: {remaining_str}[/grey50]"
+                )
+                
+                console.print(status, end="\r")
+
+        console.print(f"\n✅ [bold green]{model_name} downloaded successfully![/bold green]")
+
+    except Exception as e:
+        console.print(f"\n❌ [bold red]Download failed: {str(e)}[/bold red]")
+        raise
 
 def remove_model(model_name):
     """Remove a model."""
