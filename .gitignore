@@ -1,7 +1,11 @@
 # Byte-compiled / optimized / DLL files
+delta_env/
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+.DS_Store
+*.log
 
 # C extensions
 *.so

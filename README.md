@@ -1,5 +1,15 @@
 # Delta
 
+![macOS](https://img.shields.io/badge/macOS-兼容-success)
+![Windows](https://img.shields.io/badge/Windows-兼容-success)
+![Linux](https://img.shields.io/badge/Linux-兼容-success)
+
+## Quick Start
+```bash
+git clone https://github.com/oderoi/delta.git
+cd delta && python delta.py setup
+```
+
 ## Delta Settup for Ubuntu
 
 **1. Install System Dependencies**
@@ -197,56 +207,3 @@ export OLLAMA_NUM_GPU=1
 curl -fsSL https://ollama.ai/install.sh | sh
 sudo systemctl enable ollama
 ```
-
----
-
-### **Repository Enhancements**
-Add these files to your GitHub repo:
-
-**1. `.gitignore`**
-```gitignore
-delta_env/
-__pycache__/
-*.pyc
-.DS_Store
-*.log
-```
-
-**2. `README.md`** (Cross-Platform Badges)
-````markdown
-![macOS](https://img.shields.io/badge/macOS-兼容-success)
-![Windows](https://img.shields.io/badge/Windows-兼容-success)
-![Linux](https://img.shields.io/badge/Linux-兼容-success)
-
-## Quick Start
-```bash
-git clone https://github.com/oderoi/delta.git
-cd delta && python delta.py setup
-```
-````
-
-**3. GitHub Actions (`.github/workflows/ci.yml`)**
-```yaml
-name: CI
-on: [push]
-
-jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        
-    steps:
-    - uses: actions/checkout@v4
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-```
-
-This maintains consistency with your Ubuntu setup while addressing platform-specific requirements. Would you like me to elaborate on any particular aspect?
