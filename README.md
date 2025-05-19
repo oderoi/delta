@@ -1,5 +1,13 @@
 # Delta
 
+
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="/img/delta.png">
+  <img alt="tiny corp logo" src="/img/delta.png" width="50%" height="50%">
+</picture>
+
 ![macOS](https://img.shields.io/badge/macOS-兼容-success)
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
 ![Linux](https://img.shields.io/badge/Linux-兼容-success)

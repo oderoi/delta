@@ -74,7 +74,8 @@ def fetch_duckduckgo_context(query):
     """Fetch concise context from DuckDuckGo for current information."""
     from duckduckgo_search import DDGS
     try:
-        with DDGS() as ddgs:
+        time.sleep(1)
+        with DDGS(timeout=30) as ddgs: # add timeout for 30 second
             results = ddgs.text(query, max_results=2)
         if results:
             context = ""
@@ -121,6 +122,7 @@ def generate_dot_art(image_path, width=80, threshold=128):
 def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=None):
     """Run interactive session with streamlined responses or generate dot art."""
     import ollama
+    from rich.progress import Progress, SpinnerColumn, TextColumn
     global query_streak
     console.print(f"🚀 [bold green]Delta with {model_name} (Wiki: {use_wiki}, arXiv: {use_arxiv}, DuckDuckGo: {use_ddg}, Draw: {draw})[/bold green]")
     
@@ -139,29 +141,18 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
         query_streak += 1
         query_history.append(user_input)
 
-        # Run animation in a separate thread
-        def animate():
-            patterns = [" .", "..", ":.", "⋮.", "⋮⋮"]  # Animate :: one dot at a time
-            i = 0
-            while not stop_animation.is_set():
-                sys.stdout.write(f"\r{patterns[i % len(patterns)]}")
-                sys.stdout.flush()
-                i += 1
-                time.sleep(0.25)
-            sys.stdout.write("\r" + " " * 30 + "\r")  # Clear the line
-            sys.stdout.flush()
+        # Phase 1: Process query with spinner
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True #Remove spinner when done
+        ) as progress:
+            task = progress.add_task("Processing query...", total=None)
 
-        stop_animation = threading.Event()
-        animation_thread = threading.Thread(target=animate)
-        animation_thread.start()
+            # Analyze question
+            thought = think_about_question(model_name, user_input)
 
-        # Analyze question
-        thought = think_about_question(model_name, user_input)
-        
-        # Stop animation
-        stop_animation.set()
-        animation_thread.join()
-
+        # Prepare context and prompt
         refined_query = f"{user_input} {thought}"
 
         context, citations, images, url = get_context(refined_query, use_wiki, use_arxiv, use_ddg)
@@ -174,13 +165,21 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
 
         messages.append({'role': 'user', 'content': prompt})
 
-        response_chunks = ollama.chat(
-            model=model_name,
-            messages=messages,
-            options={'num_ctx': 512, 'max_tokens': 150},
-            stream=True
-        )
+        # Phase 2: Generate response with spinner, stop before printing
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True
+        ) as progress:
+            task = progress.add_task("Generating response...", total=None)
+            response_chunks = ollama.chat(
+                model=model_name,
+                messages=messages,
+                options={'num_ctx': 512, 'max_tokens': 150},
+                stream=True
+            )
 
+        # Print response chunks without spinner interference
         full_response = ""
         start_time = time.time()
         for chunk in response_chunks:
@@ -235,15 +234,12 @@ def list_models():
     table.add_column("Quantization")
 
     for model in models:
-        # Extract model information
-        name = model.get('model', 'N/A').split(':')[0]
+        name = model.get('model', 'N/A')
         size = f"{model.get('size', 0)/1e9:.1f} GB" if model.get('size') else 'N/A'
         
-        # Handle datetime conversion
         mod_at = model.get('modified_at')
         modified_at = mod_at.strftime('%Y-%m-%d %H:%M') if mod_at else 'N/A'
         
-        # Handle details
         details = model.get('details', {})
         fmt = details.get('format', 'N/A')
         family = details.get('family', 'N/A')
@@ -264,75 +260,52 @@ def list_models():
     console.print(table)
 
 def pull_model(model_name):
-    """Download a model with detailed progress display."""
     import ollama
-    import time
+    from rich.progress import Progress, SpinnerColumn, BarColumn, DownloadColumn, TextColumn, TimeRemainingColumn
     from rich.console import Console
     console = Console()
 
     try:
-        start_time = time.time()
-        layers = []
-        downloaded = 0
-        total_size = 0
-
-        # Start download with streaming
-        response = ollama.pull(model_name, stream=True)
+        console.print(f"⬇️ Downloading {model_name}")
         
-        console.print(f"⬇️ [bold yellow]Downloading {model_name}[/bold yellow]")
-        console.print("[grey50]Initializing download...[/grey50]", end="\r")
-
-        for chunk in response:
-            # Track layers and progress
-            if chunk.get('status') == 'starting':
-                layers.append({
-                    'digest': chunk['digest'],
-                    'total': chunk['total'],
-                    'completed': 0
-                })
-                total_size += chunk['total']
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            DownloadColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeRemainingColumn(),
+            transient=True  # Removes progress bar when done
+        ) as progress:
+            task = progress.add_task(f"Downloading {model_name}", total=None)
+            response = ollama.pull(model_name, stream=True)
             
-            if chunk.get('status') == 'downloading':
-                # Update layer progress
-                for layer in layers:
-                    if layer['digest'] == chunk['digest']:
-                        layer['completed'] = chunk['completed']
-                        break
-                
-                # Calculate totals
-                downloaded = sum(l['completed'] for l in layers)
-                elapsed = time.time() - start_time
-                speed = downloaded / elapsed if elapsed > 0 else 0
-                remaining = (total_size - downloaded) / speed if speed > 0 else 0
-
-                # Progress calculations
-                percent = (downloaded / total_size) * 100 if total_size > 0 else 0
-                bar_width = 40
-                filled = int(bar_width * percent / 100)
-                progress_bar = f"[{'='*filled}{' '*(bar_width-filled)}]"
-
-                # Format values
-                downloaded_gb = downloaded / 1e9
-                total_gb = total_size / 1e9
-                speed_mbs = speed / 1e6
-                remaining_str = f"{remaining:.1f}s" if remaining < 3600 else f"{remaining/60:.1f}m"
-
-                # Construct status line
-                status = (
-                    f"[cyan]{model_name}[/cyan] "
-                    f"[green]{percent:.1f}%[/green] "
-                    f"{progress_bar} "
-                    f"[yellow]{downloaded_gb:.2f}/{total_gb:.2f} GB[/yellow] "
-                    f"[magenta]{speed_mbs:.2f} MB/s[/magenta] "
-                    f"[grey50]ETA: {remaining_str}[/grey50]"
-                )
-                
-                console.print(status, end="\r")
-
-        console.print(f"\n✅ [bold green]{model_name} downloaded successfully![/bold green]")
+            layers = {}
+            total_size = 0
+            
+            for chunk in response:
+                if chunk.get('status') == 'downloading':
+                    digest = chunk.get('digest', '')
+                    total = int(chunk.get('total', 0))
+                    completed = int(chunk.get('completed', 0))
+                    
+                    if digest not in layers:
+                        layers[digest] = {'total': total, 'completed': completed}
+                        total_size += total
+                        if progress.tasks[task].total is None:
+                            progress.update(task, total=total_size)
+                    else:
+                        layers[digest]['completed'] = completed
+                    
+                    downloaded = sum(l['completed'] for l in layers.values())
+                    progress.update(task, completed=downloaded)
+            
+            progress.update(task, completed=total_size or 0)
+        
+        console.print(f"✅ {model_name} downloaded successfully!")
 
     except Exception as e:
-        console.print(f"\n❌ [bold red]Download failed: {str(e)}[/bold red]")
+        console.print(f"❌ Download failed: {str(e)}")
         raise
 
 def remove_model(model_name):
@@ -378,7 +351,7 @@ def setup_delta():
     
     # Install required libraries in the virtual environment
     pip_path = env_dir / "bin" / "pip"
-    libraries = ["rich", "ollama", "wikipedia-api", "arxiv", "Pillow", "duckduckgo_search"]
+    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search"]
     try:
         subprocess.run([str(pip_path), "install", "--upgrade", "pip"], check=True)
         console.print("[green]Upgraded pip in virtual environment[/green]")
