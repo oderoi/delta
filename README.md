@@ -8,6 +8,8 @@
   <img alt="tiny corp logo" src="/img/delta.png" width="50%" height="50%">
 </picture>
 
+</div>
+
 ![macOS](https://img.shields.io/badge/macOS-兼容-success)
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
 ![Linux](https://img.shields.io/badge/Linux-兼容-success)
