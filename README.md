@@ -5,7 +5,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="/img/delta.png">
-  <img alt="tiny corp logo" src="/img/delta.png" width="30%" height="30%">
+  <img alt="tiny corp logo" src="/img/delta.png" width="50%" height="50%">
 </picture>
 
 </div>
