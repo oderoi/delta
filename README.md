@@ -210,11 +210,13 @@ You should have at least 8GB of RAM available to run the 7B models, 16 GB to run
 ---
 
 ### **Help**
+
 '''bash
 delta -h
-``
+```
 
 ### **Check Models installed**
+
 ```bash
 delta list
 ```
@@ -222,18 +224,23 @@ delta list
 ### **Chat with the Models only**
 
 **Syntax** `delta run model_name`
+
 ```bash
 delta run llama3.1
 ```
 
 ### **Search through Wikipedia then use model to answer**
+
 **Syntax** `delta run model_name --wiki`
+
 ```bash
 delta run llama3.1 llama3.1 --wiki
 ```
 
 ### **search through DuckduckGo (Browser) then use model to answer**
+
 **Syntax** `delta run model_name --ddg`
+
 ```bash
 delta run llama3.1 --ddg
 ```
