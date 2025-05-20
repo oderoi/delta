@@ -223,6 +223,7 @@ delta run llama3.1 llama3.1 --wiki
 ```
 
 ### **search through DuckduckGo (Browser) then use model to answer**
+**Syntax** `delta run model_name --ddg`
 ```bash
 delta run llama3.1 --ddg
 ```
