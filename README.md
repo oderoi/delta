@@ -1,6 +1,3 @@
-# Delta
-
-
 <div align="center">
 
 <picture>
@@ -9,6 +6,8 @@
 </picture>
 
 </div>
+
+# Delta
 
 ![macOS](https://img.shields.io/badge/macOS-兼容-success)
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
@@ -20,7 +19,9 @@ git clone https://github.com/oderoi/delta.git
 cd delta && python delta.py setup
 ```
 
-## Delta Settup for Ubuntu
+## Delta Settup Guide
+
+### **Ubuntu**
 
 **1. Install System Dependencies**
 ```bash
@@ -92,7 +93,7 @@ sudo systemctl enable ollama
 
 ---
 
-### **macOS Setup Guide** (Intel & Apple Silicon)
+### **macOS** (Intel & Apple Silicon)
 
 **1. Install System Dependencies**
 ```bash
@@ -131,7 +132,7 @@ delta run mistral --wiki
 
 ---
 
-### **Windows Setup Guide** (10/11)
+### **Windows** (10/11)
 
 **1. Install Prerequisites** (PowerShell Admin)
 ```powershell
@@ -165,4 +166,63 @@ python delta.py setup
 **4. Add to PATH** (One-Time)
 ```powershell
 [Environment]::SetEnvironmentVariable("Path", "$env:Path;$env:USERPROFILE\bin", "User")
+```
+
+## Quickstart
+---
+
+To run and chat with `llama3.1`:
+```bash
+delta run llama3.1
+```
+
+## Model library
+---
+
+delta support a list models available on [ollama](https://www.ollama.com/library).
+
+Here are some examples of the models that can be downloaded
+|Model|Parameter|Size|Dowload|
+|-----|---------|----|-------|
+|Gemma 3|1B|815MB|`delta pull gemma3:1b`|
+|Gemma 3|4B|3.3GB|`delta pull gemma3`|
+|Gemma 3|12B|8.1GB|`delta pull gemma3:12b`|
+|DeepSeep-R1|7B|4.7GB|`delta pull deepseek-r1`|
+|Llama 3.2|3B|2.0GB|`delta pull llama3.2`|
+|Llama 3.2|1B|1.3GB|`delta pull llama3.2:1b`|
+|Llama 3.1|8B|4.7GB|`delta pull llama3.1`|
+|Phi 4|14B|9.1MB|`delta pull phi4`|
+|Phi 4 Mini|3.8B|2.5GB|`delta pull phi4-mini`|
+|Mistral|7B|4.1GB|`delta pull mistral`|
+|Moondream 2|1.4B|829MB|`delta pull moondream`|
+|Neural Chat|7B|4.1GB|`delta pull meural-chat`|
+|Starling|7B|4.1GB|`delta pull starling-lm`|
+|Code Llama|7B|3.8GB|`delta pull codellama`|
+|Llama 2 Uncensored|7B|3.8GB|`delta pull llama2-uncensored`|
+|LLaVA|7B|4.5GB|`delta pull llava`|
+|Granite-3.3|8B|4.9GB|`delta pull granite3.3`|
+
+```note
+You should have at least 8GB of RAM available to run the 7B models, 16 GB to run 13B models, and 32 GB to run the 33B models.
+```
+
+## Use Delta
+---
+
+### **Chat with the Models only**
+
+**Syntax** `delta run model_name`
+```bash
+delta run llama3.1
+```
+
+### **Search through Wikipedia then use model to answer**
+**Syntax** `delta run model_name --wiki`
+```bash
+delta run llama3.1 llama3.1 --wiki
+```
+
+### **search through DuckduckGo (Browser) then use model to answer**
+```bash
+delta run llama3.1 --ddg
 ```
