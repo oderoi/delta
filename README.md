@@ -221,6 +221,14 @@ delta -h
 delta list
 ```
 
+### **Remove / Delete model**
+
+**Syntax** `delta remove model_name`
+
+```bash
+delta remove llama3.1
+```
+
 ### **Chat with the Models only**
 
 **Syntax** `delta run model_name`
