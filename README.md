@@ -209,6 +209,16 @@ You should have at least 8GB of RAM available to run the 7B models, 16 GB to run
 ## Use Delta
 ---
 
+### **Help**
+'''bash
+delta -h
+``
+
+### **Check Models installed**
+```bash
+delta list
+```
+
 ### **Chat with the Models only**
 
 **Syntax** `delta run model_name`
