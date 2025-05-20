@@ -242,7 +242,7 @@ delta run llama3.1
 **Syntax** `delta run model_name --wiki`
 
 ```bash
-delta run llama3.1 llama3.1 --wiki
+delta run llama3.1 --wiki
 ```
 
 ### **search through DuckduckGo (Browser) then use model to answer**
@@ -251,4 +251,10 @@ delta run llama3.1 llama3.1 --wiki
 
 ```bash
 delta run llama3.1 --ddg
+```
+
+### **Delta Version**
+
+```bash
+delta --version
 ```
