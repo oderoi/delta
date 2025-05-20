@@ -51,9 +51,6 @@ pip install -r requirements.txt  # Create this file with your dependencies if mi
 ```bash
 # Run setup to create symlinks and PATH configuration
 python delta.py setup
-
-### Start Ollama service
-ollama serve &
 ```
 
 **5. Verify Installation**
@@ -123,9 +120,6 @@ pip install -r requirements.txt
 ```bash
 # Run setup
 python delta.py setup
-
-# Start Ollama service (auto-start on login)
-brew services start ollama
 ```
 
 **4. Verify Installation**
@@ -166,54 +160,9 @@ pip install -r requirements.txt
 ```powershell
 # Run setup
 python delta.py setup
-
-# Start Ollama service (new PowerShell window)
-Start-Process ollama -ArgumentList "serve"
 ```
 
 **4. Add to PATH** (One-Time)
 ```powershell
 [Environment]::SetEnvironmentVariable("Path", "$env:Path;$env:USERPROFILE\bin", "User")
-```
-
----
-
-### **Cross-Platform Notes**
-
-**Common Commands**
-```bash
-# Update Delta
-git pull origin main
-pip install --upgrade -r requirements.txt
-
-# Remove Delta
-ollama app rm
-rm -rf ~/delta  # macOS/Linux
-Remove-Item -Recurse -Force ~\delta  # Windows
-```
-
-**Troubleshooting**
-
-| Issue | macOS Fix | Windows Fix |
-|-------|-----------|-------------|
-| **Ollama not found** | `export PATH="$PATH:/usr/local/bin"` | Add `C:\Program Files\Ollama` to PATH |
-| **Image processing** | `brew install libtiff webp` | `choco install libjpeg-turbo` |
-| **GPU Acceleration** | `export OLLAMA_NUM_GPU=1` | Install [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) |
-
----
-
-### **Platform-Specific Optimizations**
-
-**For Apple Silicon (M1/M2/M3):**
-```bash
-# In ~/.zshrc
-export OLLAMA_MLOCK=1
-export OLLAMA_NUM_GPU=1
-```
-
-**For Windows WSL (Recommended):**
-```bash
-# In WSL Ubuntu
-curl -fsSL https://ollama.ai/install.sh | sh
-sudo systemctl enable ollama
 ```
