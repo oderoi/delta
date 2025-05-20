@@ -211,7 +211,7 @@ You should have at least 8GB of RAM available to run the 7B models, 16 GB to run
 
 ### **Help**
 
-'''bash
+```bash
 delta -h
 ```
 
