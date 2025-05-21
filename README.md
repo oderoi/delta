@@ -253,6 +253,32 @@ delta run llama3.1 --wiki
 delta run llama3.1 --ddg
 ```
 
+### **Search through your local documents or summarize**
+
+**Syntax** `delta run model_name --docs /location/to/your/document`
+
+**Linux or MacOs**
+```bash
+delta run llama3.1:latest --docs /home/Documents/computer_vision_nlp.pdf
+```
+
+**Windows**
+```bash
+delta run llama3.1:latest --docs C:\Users\home\Documents\computer_vision_nlp.pdf
+```
+
+### **View your Chat History**
+
+```bash
+delta hist
+```
+
+### **Clear Chat History**
+
+```bash
+delta hist --clear
+```
+
 ### **Delta Version**
 
 ```bash
