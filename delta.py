@@ -11,6 +11,9 @@ from pathlib import Path
 import shutil
 import subprocess
 import sysconfig
+import PyPDF2
+from docx import Document
+import json
 
 # Initialize rich console
 console = Console()
@@ -18,6 +21,57 @@ console = Console()
 # In-memory query history for personalization
 query_history = []
 query_streak = 0
+
+# Path to the history file
+HISTORY_FILE = Path.home() / ".delta" / "history.json"
+
+def save_interaction(user_input, response):
+    """Save a chat interaction to the history file."""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    interaction = {
+        "timestamp": timestamp,
+        "user_input": user_input,
+        "response": response
+    }
+    
+    # Ensure the directory exists
+    HISTORY_FILE.parent.mkdir(exist_ok=True)
+    
+    # Initialize the file if it doesn't exist
+    if not HISTORY_FILE.exists():
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump([], f)
+    
+    # Append the new interaction
+    with open(HISTORY_FILE, 'r+') as f:
+        history = json.load(f)
+        history.append(interaction)
+        f.seek(0)
+        f.truncate()
+        json.dump(history, f, indent=4)
+
+def display_history():
+    """Display the chat history from the history file."""
+    if not HISTORY_FILE.exists():
+        console.print("[yellow]No chat history found.[/yellow]")
+        return
+    
+    with open(HISTORY_FILE, 'r') as f:
+        history = json.load(f)
+        for interaction in history:
+            console.print(f"[bold cyan]{interaction['timestamp']}[/bold cyan]")
+            console.print(f"[bold]User:[/bold] {interaction['user_input']}")
+            console.print(f"[bold]Assistant:[/bold] {interaction['response']}")
+            console.print("---")
+
+def clear_history():
+    """Clear the chat history file."""
+    if HISTORY_FILE.exists():
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump([], f)
+        console.print("[green]Chat history cleared.[/green]")
+    else:
+        console.print("[yellow]No chat history to clear.[/yellow]")
 
 def think_about_question(model_name, question):
     """Analyze question for key concepts and intent (minimal output)."""
@@ -75,7 +129,7 @@ def fetch_duckduckgo_context(query):
     from duckduckgo_search import DDGS
     try:
         time.sleep(1)
-        with DDGS(timeout=30) as ddgs: # add timeout for 30 second
+        with DDGS(timeout=30) as ddgs:
             results = ddgs.text(query, max_results=2)
         if results:
             context = ""
@@ -91,8 +145,76 @@ def fetch_duckduckgo_context(query):
         console.print(f"❌ [red]DuckDuckGo Error: {str(e)}[/red]")
         return "", [], [], ""
 
-def get_context(query, use_wiki=False, use_arxiv=False, use_ddg=False):
-    """Fetch context based on flags."""
+def read_text_file(file_path):
+    """Read content from a text file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        console.print(f"[red]Error reading {file_path}: {e}[/red]")
+        return ""
+
+def read_pdf_file(file_path):
+    """Read content from a PDF file."""
+    try:
+        with open(file_path, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
+            return text
+    except Exception as e:
+        console.print(f"[red]Error reading {file_path}: {e}[/red]")
+        return ""
+
+def read_docx_file(file_path):
+    """Read content from a DOCX file."""
+    try:
+        doc = Document(file_path)
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text
+    except Exception as e:
+        console.print(f"[red]Error reading {file_path}: {e}[/red]")
+        return ""
+
+def fetch_document_context(doc_path):
+    """Fetch content from a single document file."""
+    doc_path = Path(doc_path)
+    if not doc_path.is_file():
+        console.print(f"[red]Error: {doc_path} is not a valid file[/red]")
+        return "", [], [], ""
+    
+    supported_extensions = {'.txt', '.pdf', '.docx'}
+    if doc_path.suffix.lower() not in supported_extensions:
+        console.print(f"[red]Error: Unsupported file extension {doc_path.suffix}. Supported: .txt, .pdf, .docx[/red]")
+        return "", [], [], ""
+    
+    content = ""
+    try:
+        if doc_path.suffix.lower() == '.txt':
+            content = read_text_file(doc_path)
+        elif doc_path.suffix.lower() == '.pdf':
+            content = read_pdf_file(doc_path)
+        elif doc_path.suffix.lower() == '.docx':
+            content = read_docx_file(doc_path)
+    except Exception as e:
+        console.print(f"[red]Error reading {doc_path}: {e}[/red]")
+        return "", [], [], ""
+    
+    if content:
+        context = f"Document: {doc_path.name}\n{content[:500]}...\n" if len(content) > 500 else f"Document: {doc_path.name}\n{content}\n"
+        citations = [str(doc_path)]
+        return context, citations, [], ""
+    else:
+        console.print(f"[yellow]No content found in {doc_path}[/yellow]")
+        return "", [], [], ""
+
+def get_context(query, use_wiki=False, use_arxiv=False, use_ddg=False, doc_path=None):
+    """Fetch context based on flags or document file path."""
+    if doc_path:
+        return fetch_document_context(doc_path)
     if use_wiki:
         return fetch_wikipedia_context(query)
     if use_arxiv:
@@ -119,12 +241,12 @@ def generate_dot_art(image_path, width=80, threshold=128):
     except Exception as e:
         console.print(f"[red]Error generating dot art: {e}[/red]")
 
-def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=None):
+def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=None, doc_path=None):
     """Run interactive session with streamlined responses or generate dot art."""
     import ollama
     from rich.progress import Progress, SpinnerColumn, TextColumn
     global query_streak
-    console.print(f"🚀 [bold green]Delta with {model_name} (Wiki: {use_wiki}, arXiv: {use_arxiv}, DuckDuckGo: {use_ddg}, Draw: {draw})[/bold green]")
+    console.print(f"🚀 [bold green]Delta with {model_name} (Wiki: {use_wiki}, arXiv: {use_arxiv}, DuckDuckGo: {use_ddg}, Draw: {draw}, Docs: {doc_path})[/bold green]")
     
     if draw:
         generate_dot_art(draw)
@@ -141,21 +263,16 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
         query_streak += 1
         query_history.append(user_input)
 
-        # Phase 1: Process query with spinner
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            transient=True #Remove spinner when done
+            transient=True
         ) as progress:
             task = progress.add_task("Processing query...", total=None)
-
-            # Analyze question
             thought = think_about_question(model_name, user_input)
 
-        # Prepare context and prompt
         refined_query = f"{user_input} {thought}"
-
-        context, citations, images, url = get_context(refined_query, use_wiki, use_arxiv, use_ddg)
+        context, citations, images, url = get_context(refined_query, use_wiki, use_arxiv, use_ddg, doc_path)
 
         if not context:
             prompt = f"Question: {user_input}\nAnswer concisely using your knowledge."
@@ -165,11 +282,10 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
 
         messages.append({'role': 'user', 'content': prompt})
 
-        # Phase 2: Generate response with spinner, stop before printing
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            transient=True
+            transient = True
         ) as progress:
             task = progress.add_task("Generating response...", total=None)
             response_chunks = ollama.chat(
@@ -179,7 +295,6 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
                 stream=True
             )
 
-        # Print response chunks without spinner interference
         full_response = ""
         start_time = time.time()
         for chunk in response_chunks:
@@ -203,8 +318,8 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
                 console.print(f"🔗 [bold]Link:[/bold] {url}")
 
         messages.append({'role': 'assistant', 'content': full_response})
+        save_interaction(user_input, full_response)
 
-        # Suggest related question
         if query_history:
             console.print(f"💡 [italic]Try: {query_history[-1]}[/italic]")
 
@@ -236,25 +351,15 @@ def list_models():
     for model in models:
         name = model.get('model', 'N/A')
         size = f"{model.get('size', 0)/1e9:.1f} GB" if model.get('size') else 'N/A'
-        
         mod_at = model.get('modified_at')
         modified_at = mod_at.strftime('%Y-%m-%d %H:%M') if mod_at else 'N/A'
-        
         details = model.get('details', {})
         fmt = details.get('format', 'N/A')
         family = details.get('family', 'N/A')
         params = details.get('parameter_size', 'N/A').replace('B', '') + "B" if details.get('parameter_size') else 'N/A'
         quant = details.get('quantization_level', 'N/A')
 
-        table.add_row(
-            name,
-            size,
-            modified_at,
-            fmt,
-            family,
-            params,
-            quant
-        )
+        table.add_row(name, size, modified_at, fmt, family, params, quant)
 
     console.print("📋 [bold]Installed Models:[/bold]")
     console.print(table)
@@ -267,7 +372,6 @@ def pull_model(model_name):
 
     try:
         console.print(f"⬇️ Downloading {model_name}")
-        
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -275,20 +379,17 @@ def pull_model(model_name):
             DownloadColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TimeRemainingColumn(),
-            transient=True  # Removes progress bar when done
+            transient=True
         ) as progress:
             task = progress.add_task(f"Downloading {model_name}", total=None)
             response = ollama.pull(model_name, stream=True)
-            
             layers = {}
             total_size = 0
-            
             for chunk in response:
                 if chunk.get('status') == 'downloading':
                     digest = chunk.get('digest', '')
                     total = int(chunk.get('total', 0))
                     completed = int(chunk.get('completed', 0))
-                    
                     if digest not in layers:
                         layers[digest] = {'total': total, 'completed': completed}
                         total_size += total
@@ -296,14 +397,10 @@ def pull_model(model_name):
                             progress.update(task, total=total_size)
                     else:
                         layers[digest]['completed'] = completed
-                    
                     downloaded = sum(l['completed'] for l in layers.values())
                     progress.update(task, completed=downloaded)
-            
             progress.update(task, completed=total_size or 0)
-        
         console.print(f"✅ {model_name} downloaded successfully!")
-
     except Exception as e:
         console.print(f"❌ Download failed: {str(e)}")
         raise
@@ -321,7 +418,6 @@ def setup_delta():
     env_dir = bin_dir / "delta_env"
     delta_path = bin_dir / "delta"
     
-    # Check for Python 3 and venv
     try:
         python_version = subprocess.run(["python3", "--version"], capture_output=True, text=True, check=True)
         console.print(f"[green]Python found: {python_version.stdout.strip()}[/green]")
@@ -338,20 +434,23 @@ def setup_delta():
         console.print("[red]Error: Python venv module is missing. Please ensure Python 3 includes venv.[/red]")
         return
     
-    # Create ~/bin if it doesn't exist
     bin_dir.mkdir(exist_ok=True)
     console.print(f"[green]Created {bin_dir} if it didn't exist[/green]")
     
-    # Create virtual environment at ~/bin/delta_env
     if not env_dir.exists():
         subprocess.run(["python3", "-m", "venv", str(env_dir)], check=True)
         console.print(f"[green]Created virtual environment at {env_dir}[/green]")
     else:
         console.print(f"[yellow]Virtual environment at {env_dir} already exists[/yellow]")
     
-    # Install required libraries in the virtual environment
-    pip_path = env_dir / "bin" / "pip"
-    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search"]
+    if sys.platform.startswith('win'):
+        pip_path = env_dir / "Scripts" / "pip.exe"
+        python_path = env_dir / "Scripts" / "python.exe"
+    else:
+        pip_path = env_dir / "bin" / "pip"
+        python_path = env_dir / "bin" / "python"
+    
+    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search", "PyPDF2", "python-docx"]
     try:
         subprocess.run([str(pip_path), "install", "--upgrade", "pip"], check=True)
         console.print("[green]Upgraded pip in virtual environment[/green]")
@@ -362,69 +461,68 @@ def setup_delta():
         console.print("[yellow]Ensure internet connectivity and try again.[/yellow]")
         return
     
-    # Check if running as a PyInstaller binary
     is_binary = getattr(sys, 'frozen', False)
-    
     if is_binary:
-        # Copy the binary to ~/bin/delta
         current_binary = Path(sys.executable).resolve()
         try:
             shutil.copy2(current_binary, delta_path)
-            delta_path.chmod(0o755)  # Make executable
+            if not sys.platform.startswith('win'):
+                delta_path.chmod(0o755)
             console.print(f"[green]Copied Delta binary to {delta_path} and made executable[/green]")
         except Exception as e:
             console.print(f"[red]Error copying binary: {e}[/red]")
             return
     else:
-        # Copy the source script to ~/bin/delta with updated shebang
         current_script = Path(__file__).resolve()
         try:
             with current_script.open("r") as f:
                 content = f.readlines()
-            shebang = f"#!{env_dir / 'bin' / 'python'}\n"
-            if content[0].startswith("#!"):
-                content[0] = shebang
-            else:
-                content.insert(0, shebang)
-            
+            if not sys.platform.startswith('win'):
+                shebang = f"#!{python_path}\n"
+                if content[0].startswith("#!"):
+                    content[0] = shebang
+                else:
+                    content.insert(0, shebang)
             with delta_path.open("w") as f:
                 f.writelines(content)
-            delta_path.chmod(0o755)  # Make executable
-            console.print(f"[green]Copied Delta script to {delta_path} with updated shebang and made executable[/green]")
+            if not sys.platform.startswith('win'):
+                delta_path.chmod(0o755)
+            console.print(f"[green]Copied Delta script to {delta_path} and made executable[/green]")
         except Exception as e:
             console.print(f"[red]Error copying script: {e}[/red]")
             return
     
-    # Update shell configurations
-    shell_configs = [
-        (Path.home() / ".bashrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
-        (Path.home() / ".zshrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
-        (Path.home() / ".config" / "fish" / "config.fish", 'set -gx PATH $HOME/bin $PATH', "# Delta CLI PATH")
-    ]
-    
-    for config_path, path_line, comment in shell_configs:
-        config_dir = config_path.parent
-        config_dir.mkdir(exist_ok=True)  # Create parent directory if needed
-        if config_path.exists():
-            with config_path.open("r") as f:
-                content = f.read()
-            if path_line not in content:
-                with config_path.open("a") as f:
-                    f.write(f"\n{comment}\n{path_line}\n")
-                console.print(f"[green]Updated {config_path} with PATH for Delta[/green]")
+    if not sys.platform.startswith('win'):
+        shell_configs = [
+            (Path.home() / ".bashrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
+            (Path.home() / ".zshrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
+            (Path.home() / ".config" / "fish" / "config.fish", 'set -gx PATH $HOME/bin $PATH', "# Delta CLI PATH")
+        ]
+        
+        for config_path, path_line, comment in shell_configs:
+            config_dir = config_path.parent
+            config_dir.mkdir(exist_ok=True)
+            if config_path.exists():
+                with config_path.open("r") as f:
+                    content = f.read()
+                if path_line not in content:
+                    with config_path.open("a") as f:
+                        f.write(f"\n{comment}\n{path_line}\n")
+                    console.print(f"[green]Updated {config_path} with PATH for Delta[/green]")
+                else:
+                    console.print(f"[yellow]{config_path} already contains PATH for Delta[/yellow]")
             else:
-                console.print(f"[yellow]{config_path} already contains PATH for Delta[/yellow]")
-        else:
-            with config_path.open("w") as f:
-                f.write(f"{comment}\n{path_line}\n")
-            console.print(f"[green]Created {config_path} with PATH for Delta[/green]")
-    
-    # Provide instructions to source the shell configuration
-    console.print("[bold green]Setup complete! To activate Delta, run one of the following:[/bold green]")
-    console.print("[bold][cyan]Bash:[/cyan][/bold] source ~/.bashrc")
-    console.print("[bold][cyan]Zsh:[/cyan][/bold] source ~/.zshrc")
-    console.print("[bold][cyan]Fish:[/cyan][/bold] source ~/.config/fish/config.fish")
-    console.print("[bold green]Then run 'delta' from anywhere! Example: 'delta run mistral'[/bold green]")
+                with config_path.open("w") as f:
+                    f.write(f"{comment}\n{path_line}\n")
+                console.print(f"[green]Created {config_path} with PATH for Delta[/green]")
+        
+        console.print("[bold green]Setup complete! To activate Delta, run one of the following:[/bold green]")
+        console.print("[bold][cyan]Bash:[/cyan][/bold] source ~/.bashrc")
+        console.print("[bold][cyan]Zsh:[/cyan][/bold] source ~/.zshrc")
+        console.print("[bold][cyan]Fish:[/cyan][/bold] source ~/.config/fish/config.fish")
+        console.print("[bold green]Then run 'delta' from anywhere! Example: 'delta run mistral --docs /path/to/document.pdf'[/bold green]")
+    else:
+        console.print("[bold green]Setup complete! On Windows, run: 'python delta.py run mistral --docs C:\\path\\to\\document.pdf'[/bold green]")
 
 def main():
     """Parse arguments and execute commands."""
@@ -432,11 +530,12 @@ def main():
     parser.add_argument("--version", action="version", version="delta v2.0")
     subparsers = parser.add_subparsers(dest="command")
 
-    run_parser = subparsers.add_parser("run", help="Run model with optional Wiki/arXiv or generate dot art")
+    run_parser = subparsers.add_parser("run", help="Run model with optional Wiki/arXiv/DuckDuckGo/docs or generate dot art")
     run_parser.add_argument("model", help="Model name")
     run_parser.add_argument("--wiki", action="store_true", help="Search Wikipedia")
     run_parser.add_argument("--arxiv", action="store_true", help="Search arXiv")
     run_parser.add_argument("--ddg", action="store_true", help="Search DuckDuckGo for current information")
+    run_parser.add_argument("--docs", help="Path to a document file (.txt, .pdf, .docx)")
     run_parser.add_argument("--draw", help="Generate dot art from an image file")
 
     subparsers.add_parser("list", help="List models")
@@ -444,16 +543,18 @@ def main():
     pull_parser.add_argument("model", help="Model name")
     remove_parser = subparsers.add_parser("remove", help="Remove model")
     remove_parser.add_argument("model", help="Model name")
-    
     subparsers.add_parser("setup", help="Set up Delta CLI with virtual environment for easy execution")
+    
+    hist_parser = subparsers.add_parser("hist", help="Display or clear chat history")
+    hist_parser.add_argument("--clear", action="store_true", help="Clear chat history")
 
     args = parser.parse_args()
 
     if args.command == "run":
-        if sum([args.wiki, args.arxiv, args.ddg]) > 1:
-            console.print("❌ [red]Use only one: --wiki, --arxiv, or --ddg[/red]")
+        if sum([args.wiki, args.arxiv, args.ddg, bool(args.docs)]) > 1:
+            console.print("❌ [red]Use only one: --wiki, --arxiv, --ddg, or --docs[/red]")
         else:
-            run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, draw=args.draw)
+            run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, draw=args.draw, doc_path=args.docs)
     elif args.command == "list":
         list_models()
     elif args.command == "pull":
@@ -462,6 +563,11 @@ def main():
         remove_model(args.model)
     elif args.command == "setup":
         setup_delta()
+    elif args.command == "hist":
+        if args.clear:
+            clear_history()
+        else:
+            display_history()
     else:
         parser.print_help()
 
