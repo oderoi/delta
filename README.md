@@ -304,3 +304,5 @@ delta --version
 - **Ctrl + j:** Submits the input.
 
 - **Ctrl + D:** or type `"exit"`Exits the session.
+
+- **Arrow Keys:** move your coursor left, right, up and down on delta.
