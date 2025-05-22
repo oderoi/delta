@@ -63,12 +63,16 @@ delta run mistral --wiki
 
 **Recommended requirements.txt:**
 ```txt
-rich>=13.7.0
-ollama>=0.1.14
-wikipedia>=1.4.0
-arxiv>=2.1.0
-Pillow>=10.3.0
-duckduckgo-search>=5.0.1
+rich
+ollama
+wikipedia
+arxiv
+Pillow
+duckduckgo_search
+PyPDF2
+python-docx
+prompt_toolkit
+pyperclip
 ```
 
 **To Update Delta:**
