@@ -14,6 +14,9 @@ import sysconfig
 import PyPDF2
 from docx import Document
 import json
+from prompt_toolkit import PromptSession
+from prompt_toolkit.key_binding import KeyBindings
+import pyperclip
 
 # Initialize rich console
 console = Console()
@@ -252,10 +255,76 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
         generate_dot_art(draw)
         return
 
+    # Create key bindings
+    bindings = KeyBindings()
+
+    # Submit input with Ctrl+J
+    @bindings.add('c-j')
+    def _(event):
+        event.app.current_buffer.validate_and_handle()
+
+    # Selection with Shift+Arrow keys
+    @bindings.add('s-left')
+    def _(event):
+        buffer = event.app.current_buffer
+        if not buffer.selection_state:
+            buffer.start_selection()
+        buffer.cursor_left()
+
+    @bindings.add('s-right')
+    def _(event):
+        buffer = event.app.current_buffer
+        if not buffer.selection_state:
+            buffer.start_selection()
+        buffer.cursor_right()
+
+    @bindings.add('s-up')
+    def _(event):
+        buffer = event.app.current_buffer
+        if not buffer.selection_state:
+            buffer.start_selection()
+        buffer.cursor_up()
+
+    @bindings.add('s-down')
+    def _(event):
+        buffer = event.app.current_buffer
+        if not buffer.selection_state:
+            buffer.start_selection()
+        buffer.cursor_down()
+
+    # Copy with Ctrl+C (or exit if no selection)
+    @bindings.add('c-c')
+    def _(event):
+        buffer = event.app.current_buffer
+        if buffer.selection_state:
+            selected_text = buffer.copy_selection()
+            pyperclip.copy(selected_text)
+            console.print("[green]Text copied to clipboard.[/green]")
+            buffer.exit_selection()
+        else:
+            raise KeyboardInterrupt
+
+    # Paste with Ctrl+V
+    @bindings.add('c-v')
+    def _(event):
+        clipboard_content = pyperclip.paste()
+        event.app.current_buffer.insert_text(clipboard_content)
+
+    # Initialize prompt with instructions
+    console.print("[yellow]Type your question. Use Enter for new lines, Ctrl+J to send, Shift+Arrows to select, Ctrl+C to copy/exit, Ctrl+V to paste.[/yellow]")
+    session = PromptSession(multiline=True, key_bindings=bindings)
+
     messages = []
     while True:
         console.print(f"🔥 [bold]Streak: {query_streak}[/bold]")
-        user_input = input("> ")
+        try:
+            user_input = session.prompt('> ')
+        except KeyboardInterrupt:
+            console.print("👋 [bold green]Session ended. Come back soon![/bold green]")
+            break
+        except EOFError:
+            console.print("👋 [bold green]Session ended. Come back soon![/bold green]")
+            break
         if user_input.lower() == "exit":
             console.print("👋 [bold green]Session ended. Come back soon![/bold green]")
             break
@@ -285,7 +354,7 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            transient = True
+            transient=True
         ) as progress:
             task = progress.add_task("Generating response...", total=None)
             response_chunks = ollama.chat(
@@ -450,7 +519,7 @@ def setup_delta():
         pip_path = env_dir / "bin" / "pip"
         python_path = env_dir / "bin" / "python"
     
-    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search", "PyPDF2", "python-docx"]
+    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search", "PyPDF2", "python-docx", "prompt_toolkit", "pyperclip"]
     try:
         subprocess.run([str(pip_path), "install", "--upgrade", "pip"], check=True)
         console.print("[green]Upgraded pip in virtual environment[/green]")

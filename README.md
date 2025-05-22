@@ -284,3 +284,19 @@ delta hist --clear
 ```bash
 delta --version
 ```
+
+## Run Delta
+
+**At the `>` prompt
+
+- **Enter:** Adds a new line.
+
+- **Shift + Arrow Keys:** Select text (left, right, up, down).
+
+- **Ctrl + C:** Copies selected text to the clipboard or exits if no selection.
+
+- **Ctrl + V:** Pastes clipboard content at the cursor.
+
+- **Ctrl + j:** Submits the input.
+
+- **Ctrl + D:** or type `"exit"`Exits the session.
