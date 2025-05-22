@@ -287,7 +287,7 @@ delta --version
 
 ## Run Delta
 
-**At the `>` prompt
+**At the `>` prompt**
 
 - **Enter:** Adds a new line.
 
