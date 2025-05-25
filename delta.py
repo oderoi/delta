@@ -360,7 +360,7 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=N
             response_chunks = ollama.chat(
                 model=model_name,
                 messages=messages,
-                options={'num_ctx': 512, 'max_tokens': 150},
+                options={'num_ctx': 2048, 'max_tokens': 250},
                 stream=True
             )
 

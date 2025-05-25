@@ -2,12 +2,15 @@
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="/img/delta.png">
-  <img alt="tiny corp logo" src="/img/delta.png" width="20%" height="20%">
+  <img alt="nan corp delta logo" src="/img/delta.png" width="20%" height="20%">
 </picture>
 
 </div>
 
 # Delta
+
+> <img alt="nan corp inference file logo" src="/img/file.png" width="%10" height="%10">
+> Delta aim to transforms local AI inferencing with a single-file engine that lets you run open-source large language models (LLMs) on your CPU using just a terminal command. With CLI support, Delta delivers efficiency with minimal overhead and optimized memory usage, enabling powerful LLMs to operate smoothly on standard hardware. What makes Delta unique is its ability to support distributed inferencing—not from the cloud, but across local computers—harnessing their collective power seamlessly. Whether you're a researcher, developer, or enthusiast, Delta brings the potential of AI to your fingertips with simplicity and flexibility.
 
 ![macOS](https://img.shields.io/badge/macOS-兼容-success)
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
