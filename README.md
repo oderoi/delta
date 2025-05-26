@@ -10,7 +10,10 @@
 # Delta
 
 > <img alt="nan corp inference file logo" src="/img/file.png" width="%10" height="%10">
-> Delta aim to transforms local AI inferencing with a single-file engine that lets you run open-source large language models (LLMs) on your CPU using just a terminal command. With CLI support, Delta delivers efficiency with minimal overhead and optimized memory usage, enabling powerful LLMs to operate smoothly on standard hardware. What makes Delta unique is its ability to support distributed inferencing—not from the cloud, but across local computers—harnessing their collective power seamlessly. Whether you're a researcher, developer, or enthusiast, Delta brings the potential of AI to your fingertips with simplicity and flexibility.
+
+> # Introduction to Delta
+
+> In a world where cutting-edge AI often demands expensive hardware like M4 chips or DGX systems, Delta stands out as a game-changer, particularly for regions like Africa where many rely on older laptops with CPUs. This project is personal—it’s about bridging the gap for those left behind by the rapid pace of technological advancement, empowering users to harness the power of large language models (LLMs) without needing costly devices. Delta transforms local AI inferencing with a single-file engine that runs open-source LLMs on your CPU using just a terminal command. With CLI support, it delivers efficiency, fast backend runtime with zero overhead and optimized memory usage, making powerful AI accessible on standard hardware. What sets Delta apart is its ability to support distributed inferencing—not from the cloud, but across local computers—unlocking their collective potential seamlessly. With Delta, you can chat with LLMs offline, search Wikipedia, GitHub, arXiv, the internet via DuckDuckGo, or your own files, and even control your system with natural language commands like creating files or opening apps. Designed to go beyond tools like vLLM, llama.cpp, llm.c, Jan, LMStudio, and Ollama, Delta brings AI to your fingertips with simplicity and flexibility, aiming to democratize access and close the global AI divide.
 
 ![macOS](https://img.shields.io/badge/macOS-兼容-success)
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
