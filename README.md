@@ -81,14 +81,6 @@ prompt_toolkit
 pyperclip
 ```
 
-**To Update Delta:**
-```bash
-cd ~/delta
-git pull origin main
-source delta_env/bin/activate
-pip install --upgrade -r requirements.txt
-```
-
 **Troubleshooting Additions:**
 ```bash
 # If you get web search errors
@@ -177,6 +169,21 @@ python delta.py setup
 ```powershell
 [Environment]::SetEnvironmentVariable("Path", "$env:Path;$env:USERPROFILE\bin", "User")
 ```
+
+## To Update Delta:**
+```bash
+cd ~/delta
+
+git pull origin main
+
+source delta_env/bin/activate
+
+pip install --upgrade -r requirements.txt
+
+python3 delta.py setup
+```
+
+
 
 ## Quickstart
 ---
