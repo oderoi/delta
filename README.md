@@ -170,7 +170,9 @@ python delta.py setup
 [Environment]::SetEnvironmentVariable("Path", "$env:Path;$env:USERPROFILE\bin", "User")
 ```
 
-## To Update Delta:**
+## Update Delta:
+---
+
 ```bash
 cd ~/delta
 
