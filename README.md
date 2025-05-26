@@ -9,7 +9,7 @@
 
 # Delta
 
-> <img alt="nan corp inference file logo" src="/img/file.png" width="%5" height="%5">
+> <img alt="nan corp inference file logo" src="/img/file.png" width="10%" height="10%">
 
 > # Introduction to Delta
 
