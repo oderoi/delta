@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delta Installation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .download-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .download-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        .download-button:hover {
+            background: #2980b9;
+        }
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .system-requirements {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .note {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Download Delta</h1>
+        
+        <div class="download-section">
+            <h2>Windows</h2>
+            <a href="delta-installer.exe" class="download-button">Download Windows Installer</a>
+            <div class="instructions">
+                <p>1. Download and run the installer</p>
+                <p>2. Follow the on-screen instructions</p>
+                <p>3. Open Command Prompt and type 'delta' to start</p>
+            </div>
+        </div>
+
+        <div class="download-section">
+            <h2>macOS</h2>
+            <a href="install-macos.sh" class="download-button">Download macOS Installer</a>
+            <div class="instructions">
+                <p>1. Download the installer script</p>
+                <p>2. Open Terminal and run:</p>
+                <pre>chmod +x install-macos.sh
+./install-macos.sh</pre>
+                <p>3. Open Terminal and type 'delta' to start</p>
+            </div>
+        </div>
+
+        <div class="download-section">
+            <h2>Linux</h2>
+            <a href="install-linux.sh" class="download-button">Download Linux Installer</a>
+            <div class="instructions">
+                <p>1. Download the installer script</p>
+                <p>2. Open Terminal and run:</p>
+                <pre>chmod +x install-linux.sh
+./install-linux.sh</pre>
+                <p>3. Open Terminal and type 'delta' to start</p>
+            </div>
+        </div>
+
+        <div class="system-requirements">
+            <h2>System Requirements</h2>
+            <ul>
+                <li>4GB RAM minimum (8GB recommended)</li>
+                <li>10GB free disk space</li>
+                <li>Internet connection for initial setup</li>
+                <li>Windows 10/11, macOS 10.15+, or Ubuntu 20.04+</li>
+            </ul>
+        </div>
+
+        <div class="note">
+            <h3>Note</h3>
+            <p>The first run will download the default AI model (deepseek-r1:1.5b). This may take a few minutes depending on your internet connection.</p>
+        </div>
+
+        <div class="note">
+            <h3>Need Help?</h3>
+            <p>If you encounter any issues during installation, please:</p>
+            <ul>
+                <li>Check our <a href="https://nileagi.com/products/delta/faq">FAQ</a></li>
+                <li>Visit our <a href="https://github.com/oderoi/delta">GitHub repository</a></li>
+                <li>Contact support at support@nileagi.com</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 

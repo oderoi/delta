@@ -1,5 +1,9 @@
-# Byte-compiled / optimized / DLL files
-delta_env/
+# Installation scripts
+*.sh
+*.ps1
+delta-installer-*
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -176,3 +180,37 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+delta_env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+log/
+
+# Local configuration
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Model files
+*.gguf
+*.bin
+*.pt
+*.pth
+*.onnx

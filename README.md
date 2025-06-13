@@ -13,7 +13,7 @@
 
 > # Introduction to Delta
 
-> In a world where cutting-edge AI often demands expensive hardware like M4 chips or DGX systems, Delta stands out as a game-changer, particularly for regions like Africa where many rely on older laptops with CPUs. This project is personal—it’s about bridging the gap for those left behind by the rapid pace of technological advancement, empowering users to harness the power of large language models (LLMs) without needing costly devices. Delta transforms local AI inferencing with a single-file engine that runs open-source LLMs on your CPU using just a terminal command. With CLI support, it delivers efficiency, fast backend runtime with zero overhead and optimized memory usage, making powerful AI accessible on standard hardware. What sets Delta apart is its ability to support distributed inferencing—not from the cloud, but across local computers—unlocking their collective potential seamlessly. With Delta, you can chat with LLMs offline, search Wikipedia, GitHub, arXiv, the internet via DuckDuckGo, or your own files, and even control your system with natural language commands like creating files or opening apps. Designed to go beyond tools like vLLM, llama.cpp, llm.c, Jan, LMStudio, and Ollama, Delta brings AI to your fingertips with simplicity and flexibility, aiming to democratize access and close the global AI divide.
+> In a world where cutting-edge AI often demands expensive hardware like M4 chips or DGX systems, Delta stands out as a game-changer, particularly for regions like Africa where many rely on older laptops with CPUs. This project is personal—it's about bridging the gap for those left behind by the rapid pace of technological advancement, empowering users to harness the power of large language models (LLMs) without needing costly devices. Delta transforms local AI inferencing with a single-file engine that runs open-source LLMs on your CPU using just a terminal command. With CLI support, it delivers efficiency, fast backend runtime with zero overhead and optimized memory usage, making powerful AI accessible on standard hardware. What sets Delta apart is its ability to support distributed inferencing—not from the cloud, but across local computers—unlocking their collective potential seamlessly. With Delta, you can chat with LLMs offline, search Wikipedia, GitHub, arXiv, the internet via DuckDuckGo, or your own files, and even control your system with natural language commands like creating files or opening apps. Designed to go beyond tools like vLLM, llama.cpp, llm.c, Jan, LMStudio, and Ollama, Delta brings AI to your fingertips with simplicity and flexibility, aiming to democratize access and close the global AI divide.
 
 ![macOS](https://img.shields.io/badge/macOS-兼容-success)
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
@@ -24,6 +24,138 @@
 git clone https://github.com/oderoi/delta.git
 cd delta && python delta.py setup
 ```
+
+## Delta Installation Guide
+
+Delta is an AI assistant that runs locally on your machine. This guide will help you install Delta on your preferred operating system.
+
+## Prerequisites
+
+Before installing Delta, ensure your system meets these requirements:
+- 4GB RAM minimum (8GB recommended)
+- 10GB free disk space
+- Internet connection for initial setup
+
+## Installation Instructions
+
+### Windows
+
+1. Download the installer from [https://nileagi.com/products/delta/installable/delta-installer.exe](https://nileagi.com/products/delta/installable/delta-installer.exe)
+
+2. Run the installer:
+   - Double-click `delta-installer.exe`
+   - If you see a security warning, click "More info" and then "Run anyway"
+   - The installer will automatically:
+     - Install Python if not present
+     - Install Git if not present
+     - Install Ollama if not present
+     - Set up Delta in your user directory
+
+3. After installation:
+   - Open a new Command Prompt or PowerShell window
+   - Type `delta` to start the application
+   - The first run will download the default AI model (deepseek-r1:1.5b)
+
+### macOS
+
+1. Download the installer from [https://nileagi.com/products/delta/installable/install-macos.sh](https://nileagi.com/products/delta/installable/install-macos.sh)
+
+2. Open Terminal and run:
+   ```bash
+   chmod +x install-macos.sh
+   ./install-macos.sh
+   ```
+
+3. The installer will:
+   - Install Homebrew if not present
+   - Install Python 3 if not present
+   - Install Git if not present
+   - Install Ollama if not present
+   - Set up Delta in your home directory
+
+4. After installation:
+   - Open a new Terminal window
+   - Type `delta` to start the application
+   - The first run will download the default AI model (deepseek-r1:1.5b)
+
+### Linux
+
+1. Download the installer from [https://nileagi.com/products/delta/installable/install-linux.sh](https://nileagi.com/products/delta/installable/install-linux.sh)
+
+2. Open Terminal and run:
+   ```bash
+   chmod +x install-linux.sh
+   ./install-linux.sh
+   ```
+
+3. The installer will:
+   - Install Python 3 if not present
+   - Install Git if not present
+   - Install Ollama if not present
+   - Set up Delta in your home directory
+
+4. After installation:
+   - Open a new Terminal window
+   - Type `delta` to start the application
+   - The first run will download the default AI model (deepseek-r1:1.5b)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Command not found: delta"**
+   - Try restarting your terminal
+   - On Windows, restart your computer to ensure PATH changes take effect
+
+2. **Installation fails**
+   - Ensure you have administrator privileges
+   - Check your internet connection
+   - Make sure you have enough disk space
+
+3. **Ollama not starting**
+   - On Windows: Run `ollama serve` in a separate terminal
+   - On macOS/Linux: Run `sudo systemctl start ollama`
+
+### Getting Help
+
+If you encounter any issues:
+1. Check the [FAQ](https://nileagi.com/products/delta/faq)
+2. Visit our [GitHub repository](https://github.com/oderoi/delta)
+3. Contact support at support@nileagi.com
+
+## Uninstallation
+
+### Windows
+1. Delete the `.delta` folder in your user directory
+2. Remove Delta from your PATH environment variable
+
+### macOS/Linux
+1. Delete the `.delta` folder in your home directory
+2. Remove the Delta entry from your shell's configuration file (.bashrc, .zshrc, etc.)
+
+## System Requirements
+
+- **Operating System:**
+  - Windows 10/11
+  - macOS 10.15 or later
+  - Ubuntu 20.04 or later, or equivalent Linux distribution
+
+- **Hardware:**
+  - CPU: 2GHz dual-core processor or better
+  - RAM: 4GB minimum (8GB recommended)
+  - Storage: 10GB free space
+  - Internet: Required for initial setup and model downloads
+
+## Privacy and Security
+
+Delta runs completely locally on your machine. No data is sent to external servers except for:
+- Initial package downloads
+- Model downloads from Ollama
+- Optional telemetry (can be disabled)
+
+## License
+
+Delta is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Delta Settup Guide
 
