@@ -46,38 +46,6 @@ check_ollama_running() {
     fi
 }
 
-# Function to download and install Ollama on macOS
-install_ollama_macos() {
-    local temp_dir=$(mktemp -d)
-    local ollama_zip="$temp_dir/Ollama-darwin.zip"
-    local ollama_app="/Applications/Ollama.app"
-    
-    echo -e "${GREEN}Downloading Ollama...${NC}"
-    curl -L -o "$ollama_zip" https://ollama.com/download/Ollama-darwin.zip || handle_error "Failed to download Ollama"
-    
-    echo -e "${GREEN}Extracting Ollama...${NC}"
-    unzip -q "$ollama_zip" -d "$temp_dir" || handle_error "Failed to extract Ollama"
-    
-    echo -e "${GREEN}Installing Ollama...${NC}"
-    if [ -d "$ollama_app" ]; then
-        rm -rf "$ollama_app" || handle_error "Failed to remove existing Ollama installation"
-    fi
-    mv "$temp_dir/Ollama.app" "/Applications/" || handle_error "Failed to install Ollama"
-    
-    # Clean up
-    rm -rf "$temp_dir"
-    
-    # Start Ollama
-    open -a Ollama || handle_error "Failed to start Ollama"
-    sleep 5  # Wait for Ollama to start
-    
-    # Verify Ollama is running
-    if ! curl -s http://localhost:11434/api/tags >/dev/null; then
-        echo -e "${YELLOW}Ollama failed to start automatically. Please start it manually from Applications folder.${NC}"
-        handle_error "Ollama installation completed but failed to start"
-    fi
-}
-
 echo -e "${GREEN}Starting Delta installation...${NC}"
 
 # Check if running as root
@@ -121,7 +89,37 @@ fi
 # Check if Ollama is installed
 if ! command_exists ollama; then
     echo -e "${GREEN}Installing Ollama...${NC}"
-    install_ollama_macos
+    
+    # Create temporary directory for download
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR" || handle_error "Failed to create temporary directory"
+    
+    # Download Ollama
+    echo -e "${GREEN}Downloading Ollama...${NC}"
+    curl -L -o Ollama-darwin.zip https://ollama.com/download/Ollama-darwin.zip || handle_error "Failed to download Ollama"
+    
+    # Extract and install
+    echo -e "${GREEN}Installing Ollama...${NC}"
+    unzip -q Ollama-darwin.zip || handle_error "Failed to extract Ollama"
+    sudo mv Ollama.app /Applications/ || handle_error "Failed to move Ollama to Applications"
+    
+    # Clean up
+    cd - > /dev/null
+    rm -rf "$TEMP_DIR"
+    
+    # Verify installation
+    if ! command_exists ollama; then
+        handle_error "Ollama installation completed but 'ollama' command not found. Please try restarting your terminal."
+    fi
+    
+    # Start Ollama service
+    open -a Ollama || handle_error "Failed to start Ollama"
+    sleep 5  # Wait for Ollama to start
+    
+    # Verify Ollama is running
+    if ! curl -s http://localhost:11434/api/tags >/dev/null; then
+        handle_error "Ollama service failed to start. Please check the logs and try again."
+    fi
 else
     echo -e "${GREEN}Ollama is already installed${NC}"
     check_ollama_running
@@ -187,7 +185,7 @@ fi
 
 echo -e "${GREEN}Installation complete!${NC}"
 echo -e "By default, Delta comes with the deepseek-r1:1.5b model pre-installed."
-echo -e "You can now use Delta by typing 'delta' in your terminal."
+echo -e "You can now use Delta by typing 'delta --version' in your terminal."
 echo -e "${YELLOW}Note: If you just added Delta to your PATH, please restart your terminal or run:${NC}"
 echo -e "source ~/.zshrc  # for zsh"
 echo -e "source ~/.bashrc  # for bash" 

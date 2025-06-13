@@ -133,24 +133,26 @@ fi
 # Check if Ollama is installed
 if ! command_exists ollama; then
     echo -e "${GREEN}Installing Ollama...${NC}"
-    # Download and install Ollama
+    # Download and run the official Ollama install script
     curl -fsSL https://ollama.com/install.sh | sh || handle_error "Failed to install Ollama"
+    
+    # Verify installation
+    if ! command_exists ollama; then
+        handle_error "Ollama installation completed but 'ollama' command not found. Please try restarting your terminal."
+    fi
     
     # Start Ollama service
     if command_exists systemctl; then
         sudo systemctl enable ollama
         sudo systemctl start ollama
-        sleep 5  # Wait for Ollama to start
     else
         ollama serve &
-        sleep 5  # Wait for Ollama to start
     fi
+    sleep 5  # Wait for Ollama to start
     
     # Verify Ollama is running
     if ! curl -s http://localhost:11434/api/tags >/dev/null; then
-        echo -e "${YELLOW}Ollama service failed to start automatically. Please start it manually with:${NC}"
-        echo -e "ollama serve"
-        handle_error "Ollama installation completed but service failed to start"
+        handle_error "Ollama service failed to start. Please check the logs and try again."
     fi
 else
     echo -e "${GREEN}Ollama is already installed${NC}"
