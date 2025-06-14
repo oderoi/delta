@@ -51,10 +51,9 @@ Before installing Delta, ensure your system meets these requirements:
    - The first run will download the default AI model (deepseek-r1:1.5b)
 -->
 
-** Coming Soon ...**
+**Coming Soon ...**
 
 ### macOS
-
 1. Download **delta δ** Installer
 
 i. Using Link:
@@ -63,20 +62,18 @@ i. Using Link:
 
 ii. Open Terminal and run:
 - In Terminal navigate to the folder with **delta-installer-v1-macos.sh**
-
     ```bash
     cd navigate/to/the/folder/with/delta-installer-v1-macos.sh
     ```
 
-**then Run**
-
+**then**
+- Run the installation script
    ```bash
    chmod +x delta-installer-v1-macos.sh
    ./delta-installer-v1-macos.sh
    ```
 
 2. Dowload and Install via Terminal
-
 **Open terminal**
 
 - Make sure you have *curl*
@@ -105,7 +102,6 @@ ii. Open Terminal and run:
 
 
 ### Linux
-
 1. Download **delta δ** Installer
 
 i. Using Link:
@@ -119,17 +115,15 @@ ii. Open Terminal and run:
     cd navigate/to/the/folder/with/delta-installer-v1-linux.sh
     ```
 
-**then Run**
-
+**then**
+- Run the installation script
    ```bash
    chmod +x delta-installer-v1-linux.sh
    ./delta-installer-v1-linux.sh
    ```
 
 2. Dowload and Install via Terminal
-
 **Open terminal**
-
 - Make sure you have *curl*
     ```bash
     curl --version
