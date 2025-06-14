@@ -92,7 +92,7 @@ ii. Open Terminal and run:
 
 - Make the script executable
     ```bash
-    chmod +x curl delta-installer-v1-macos.sh
+    chmod +x delta-installer-v1-macos.sh
     ```
 
 - Run the installation script
@@ -140,7 +140,7 @@ ii. Open Terminal and run:
 
 - Make the script executable
     ```bash
-    chmod +x curl delta-installer-v1-linux.sh
+    chmod +x delta-installer-v1-linux.sh
     ```
 
 - Run the installation script
