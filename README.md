@@ -1,8 +1,8 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: light)" srcset="/img/delta.png">
-  <img alt="nan corp delta logo" src="/img/delta.png" width="20%" height="20%">
+  <source media="(prefers-color-scheme: light)" srcset="/img/delta-logo.png">
+  <img alt="delta logo" src="/img/delta-logo.png" width="20%" height="20%">
 </picture>
 
 </div>
@@ -19,12 +19,6 @@
 ![Windows](https://img.shields.io/badge/Windows-兼容-success)
 ![Linux](https://img.shields.io/badge/Linux-兼容-success)
 
-## Quick Start
-```bash
-git clone https://github.com/oderoi/delta.git
-cd delta && python delta.py setup
-```
-
 ## Delta Installation Guide
 
 Delta is an AI assistant that runs locally on your machine. This guide will help you install Delta on your preferred operating system.
@@ -32,7 +26,7 @@ Delta is an AI assistant that runs locally on your machine. This guide will help
 ## Prerequisites
 
 Before installing Delta, ensure your system meets these requirements:
-- 4GB RAM minimum (8GB recommended)
+- 4GB RAM minimum (8GB or more recommended)
 - 10GB free disk space
 - Internet connection for initial setup
 
@@ -40,7 +34,7 @@ Before installing Delta, ensure your system meets these requirements:
 
 ### Windows
 
-1. Download the installer from [https://nileagi.com/products/delta/installable/delta-installer.exe](https://nileagi.com/products/delta/installable/delta-installer.exe)
+<!-- 1. Download the installer from [https://nileagi.com/products/delta/installable/delta-installer.exe](https://nileagi.com/products/delta/installable/delta-installer.exe)
 
 2. Run the installer:
    - Double-click `delta-installer.exe`
@@ -55,49 +49,132 @@ Before installing Delta, ensure your system meets these requirements:
    - Open a new Command Prompt or PowerShell window
    - Type `delta` to start the application
    - The first run will download the default AI model (deepseek-r1:1.5b)
+-->
+
+** Coming Soon ...**
 
 ### macOS
 
-1. Download the installer from [https://nileagi.com/products/delta/installable/install-macos.sh](https://nileagi.com/products/delta/installable/install-macos.sh)
+1. Download **delta δ** Installer
 
-2. Open Terminal and run:
+i. Using Link:
+- Download [δ](https://nileagi.com/delta-installer-v1-macos.sh)
+    - This will download **delta-installer-v1-macos.sh**
+
+ii. Open Terminal and run:
+- In Terminal navigate to the folder with **delta-installer-v1-macos.sh**
+
+    ```bash
+    cd navigate/to/the/folder/with/delta-installer-v1-macos.sh
+    ```
+
+**then Run**
+
    ```bash
-   chmod +x install-macos.sh
-   ./install-macos.sh
+   chmod +x delta-installer-v1-macos.sh
+   ./delta-installer-v1-macos.sh
    ```
 
-3. The installer will:
-   - Install Homebrew if not present
-   - Install Python 3 if not present
-   - Install Git if not present
-   - Install Ollama if not present
-   - Set up Delta in your home directory
+2. Dowload and Install via Terminal
 
-4. After installation:
-   - Open a new Terminal window
-   - Type `delta` to start the application
-   - The first run will download the default AI model (deepseek-r1:1.5b)
+**Open terminal**
+
+- Make sure you have *curl*
+    ```bash
+    curl --version
+    ```
+- If you see *curl* version continue to the next step if not, download *curl*.
+    ```bash
+    brew install curl
+    ```
+
+- Download the installer
+    ```bash
+    curl -O https://nileagi.com/delta-installer-macos.sh
+    ```
+
+- Make the script executable
+    ```bash
+    chmod +x curl -O delta-installer-macos.sh
+    ```
+
+- Run the installation script
+    ```bash
+    ./delta-installer-macos.sh
+    ```
+
 
 ### Linux
 
-1. Download the installer from [https://nileagi.com/products/delta/installable/install-linux.sh](https://nileagi.com/products/delta/installable/install-linux.sh)
+1. Download **delta δ** Installer
 
-2. Open Terminal and run:
+i. Using Link:
+- Download [δ](https://nileagi.com/delta-installer-v1-linux.sh)
+    - This will download **delta-installer-v1-linux.sh**
+
+ii. Open Terminal and run:
+- In Terminal navigate to the folder with **delta-installer-v1-linux.sh**
+
+    ```bash
+    cd navigate/to/the/folder/with/delta-installer-v1-linux.sh
+    ```
+
+**then Run**
+
    ```bash
-   chmod +x install-linux.sh
-   ./install-linux.sh
+   chmod +x delta-installer-v1-linux.sh
+   ./delta-installer-v1-linux.sh
    ```
 
-3. The installer will:
+2. Dowload and Install via Terminal
+
+**Open terminal**
+
+- Make sure you have *curl*
+    ```bash
+    curl --version
+    ```
+- If you see *curl* version continue to the next step if not, download *curl*.
+    ```bash
+    sudo apt update && sudo apt install curl -y
+    ```
+
+- Download the installer
+    ```bash
+    curl -O https://nileagi.com/delta-installer-linux.sh
+    ```
+
+- Make the script executable
+    ```bash
+    chmod +x curl -O delta-installer-linux.sh
+    ```
+
+- Run the installation script
+    ```bash
+    ./delta-installer-linux.sh
+    ``` 
+
+**The installer will:**
+
+   - Install Homebrew if not present - `for macos`
    - Install Python 3 if not present
    - Install Git if not present
    - Install Ollama if not present
    - Set up Delta in your home directory
 
-4. After installation:
+**After installation:**
+
    - Open a new Terminal window
    - Type `delta` to start the application
    - The first run will download the default AI model (deepseek-r1:1.5b)
+
+## Quickstart
+---
+
+To run and chat with `deepseek-r1:1.5b`:
+```bash
+delta run deepseek-r1:1.5b
+```
 
 ## Troubleshooting
 
@@ -122,210 +199,6 @@ If you encounter any issues:
 1. Check the [FAQ](https://nileagi.com/products/delta/faq)
 2. Visit our [GitHub repository](https://github.com/oderoi/delta)
 3. Contact support at support@nileagi.com
-
-## Uninstallation
-
-### Windows
-1. Delete the `.delta` folder in your user directory
-2. Remove Delta from your PATH environment variable
-
-### macOS/Linux
-1. Delete the `.delta` folder in your home directory
-2. Remove the Delta entry from your shell's configuration file (.bashrc, .zshrc, etc.)
-
-## System Requirements
-
-- **Operating System:**
-  - Windows 10/11
-  - macOS 10.15 or later
-  - Ubuntu 20.04 or later, or equivalent Linux distribution
-
-- **Hardware:**
-  - CPU: 2GHz dual-core processor or better
-  - RAM: 4GB minimum (8GB recommended)
-  - Storage: 10GB free space
-  - Internet: Required for initial setup and model downloads
-
-## Privacy and Security
-
-Delta runs completely locally on your machine. No data is sent to external servers except for:
-- Initial package downloads
-- Model downloads from Ollama
-- Optional telemetry (can be disabled)
-
-## License
-
-Delta is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Delta Settup Guide
-
-### **Ubuntu**
-
-**1. Install System Dependencies**
-```bash
-sudo apt update && sudo apt install -y python3 python3-venv curl git libjpeg-dev zlib1g-dev
-```
-
-**2. Install Ollama**
-```bash
-curl -fsSL https://ollama.ai/install.sh | sh
-```
-
-**3. Clone & Setup Delta**
-```bash
-# Clone repository
-git clone https://github.com/oderoi/delta.git
-cd delta
-
-### Create virtual environment
-python3 -m venv delta_env
-source delta_env/bin/activate
-
-### Install Python dependencies
-pip install --upgrade pip
-pip install -r requirements.txt  # Create this file with your dependencies if missing
-```
-
-**4. Configure System Integration**
-```bash
-# Run setup to create symlinks and PATH configuration
-python delta.py setup
-```
-
-**5. Verify Installation**
-```bash
-delta list
-delta pull mistral  # Example model
-delta run mistral --wiki
-```
-
-**Recommended requirements.txt:**
-```txt
-rich
-ollama
-wikipedia
-arxiv
-Pillow
-duckduckgo_search
-PyPDF2
-python-docx
-prompt_toolkit
-pyperclip
-```
-
-**Troubleshooting Additions:**
-```bash
-# If you get web search errors
-pip install --upgrade duckduckgo-search
-
-# For image processing support
-sudo apt install -y libjpeg-dev zlib1g-dev
-
-# To run as background service
-sudo systemctl enable ollama
-```
-
----
-
-### **macOS** (Intel & Apple Silicon)
-
-**1. Install System Dependencies**
-```bash
-# Install Homebrew (package manager)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Core dependencies
-brew install python3 libjpeg ollama
-```
-
-**2. Clone & Setup Delta**
-```bash
-git clone https://github.com/oderoi/delta.git
-cd delta
-
-# Create virtual environment
-python3 -m venv delta_env
-source delta_env/bin/activate
-
-# Install requirements
-pip install -r requirements.txt
-```
-
-**3. Configure System Integration**
-```bash
-# Run setup
-python delta.py setup
-```
-
-**4. Verify Installation**
-```bash
-delta list
-delta pull mistral
-delta run mistral --wiki
-```
-
----
-
-### **Windows** (10/11)
-
-**1. Install Prerequisites** (PowerShell Admin)
-```powershell
-# Install Chocolatey (package manager)
-Set-ExecutionPolicy Bypass -Scope Process -Force
-iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-
-# Install dependencies
-choco install python ollama git vcredist2019
-```
-
-**2. Clone & Setup Delta**
-```powershell
-git clone https://github.com/oderoi/delta.git
-cd delta
-
-# Create virtual environment
-python -m venv delta_env
-delta_env\Scripts\activate
-
-# Install requirements
-pip install -r requirements.txt
-```
-
-**3. Configure System Integration**
-```powershell
-# Run setup
-python delta.py setup
-```
-
-**4. Add to PATH** (One-Time)
-```powershell
-[Environment]::SetEnvironmentVariable("Path", "$env:Path;$env:USERPROFILE\bin", "User")
-```
-
-## Update Delta:
----
-
-```bash
-cd ~/delta
-
-git pull origin main
-
-source delta_env/bin/activate
-
-pip install --upgrade -r requirements.txt
-
-python3 delta.py setup
-```
-
-
-
-## Quickstart
----
-
-To run and chat with `llama3.1`:
-```bash
-delta run llama3.1
-```
 
 ## Model library
 ---
@@ -365,6 +238,13 @@ You should have at least 8GB of RAM available to run the 7B models, 16 GB to run
 ```bash
 delta -h
 ```
+### **Install model**
+
+**Syntax** `delta pull model_name`
+
+```bash
+delta pull llama3.2:1b
+```
 
 ### **Check Models installed**
 
@@ -377,7 +257,7 @@ delta list
 **Syntax** `delta remove model_name`
 
 ```bash
-delta remove llama3.1
+delta remove llama3.2:1b
 ```
 
 ### **Chat with the Models only**
@@ -453,3 +333,37 @@ delta --version
 - **Ctrl + D:** or type `"exit"`Exits the session.
 
 - **Arrow Keys:** move your coursor left, right, up and down on delta.
+
+## Uninstallation
+
+### Windows
+1. Delete the `.delta` folder in your user directory
+2. Remove Delta from your PATH environment variable
+
+### macOS/Linux
+1. Delete the `.delta` folder in your home directory
+2. Remove the Delta entry from your shell's configuration file (.bashrc, .zshrc, etc.)
+
+## System Requirements
+
+- **Operating System:**
+  - Windows 10/11
+  - macOS 10.15 or later
+  - Ubuntu 20.04 or later, or equivalent Linux distribution
+
+- **Hardware:**
+  - CPU: 2GHz dual-core processor or better
+  - RAM: 4GB minimum (8GB recommended)
+  - Storage: 10GB free space
+  - Internet: Required for initial setup and model downloads
+
+## Privacy and Security
+
+Delta runs completely locally on your machine. No data is sent to external servers except for:
+- Initial package downloads
+- Model downloads from Ollama
+- Optional telemetry (can be disabled)
+
+## License
+
+Delta is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
