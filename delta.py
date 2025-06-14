@@ -577,7 +577,7 @@ def main():
     parser.add_argument("--version", action="version", version="delta v2.0")
     subparsers = parser.add_subparsers(dest="command")
 
-    run_parser = subparsers.add_parser("run", help="Run model with optional Wiki/arXiv/DuckDuckGo/docs or generate dot art")
+    run_parser = subparsers.add_parser("run", help="Run model with optional Wiki/arXiv/DuckDuckGo/docs")
     run_parser.add_argument("model", help="Model name")
     run_parser.add_argument("--wiki", action="store_true", help="Search Wikipedia")
     run_parser.add_argument("--arxiv", action="store_true", help="Search arXiv")
