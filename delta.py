@@ -226,34 +226,12 @@ def get_context(query, use_wiki=False, use_arxiv=False, use_ddg=False, doc_path=
         return fetch_duckduckgo_context(query)
     return "", [], [], ""
 
-def generate_dot_art(image_path, width=80, threshold=128):
-    """Generate and print dot art from an image file using '.' dots."""
-    from PIL import Image
-    try:
-        img = Image.open(image_path).convert("L")
-        aspect_ratio = img.height / img.width
-        height = int(width * aspect_ratio)
-        img = img.resize((width, height))
-        console.print("[bold green]Generating dot art...[/bold green]")
-        for y in range(height):
-            for x in range(width):
-                pixel = img.getpixel((x, y))
-                sys.stdout.write("." if pixel < threshold else " ")
-            sys.stdout.write("\n")
-        sys.stdout.flush()
-    except Exception as e:
-        console.print(f"[red]Error generating dot art: {e}[/red]")
-
-def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, draw=None, doc_path=None):
+def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, doc_path=None):
     """Run interactive session with streamlined responses or generate dot art."""
     import ollama
     from rich.progress import Progress, SpinnerColumn, TextColumn
     global query_streak
-    console.print(f"🚀 [bold green]Delta with {model_name} (Wiki: {use_wiki}, arXiv: {use_arxiv}, DuckDuckGo: {use_ddg}, Draw: {draw}, Docs: {doc_path})[/bold green]")
-    
-    if draw:
-        generate_dot_art(draw)
-        return
+    console.print(f"🚀 [bold green]Delta with {model_name} (Wiki: {use_wiki}, arXiv: {use_arxiv}, DuckDuckGo: {use_ddg}, Docs: {doc_path})[/bold green]")
 
     # Create key bindings
     bindings = KeyBindings()
@@ -605,7 +583,6 @@ def main():
     run_parser.add_argument("--arxiv", action="store_true", help="Search arXiv")
     run_parser.add_argument("--ddg", action="store_true", help="Search DuckDuckGo for current information")
     run_parser.add_argument("--docs", help="Path to a document file (.txt, .pdf, .docx)")
-    run_parser.add_argument("--draw", help="Generate dot art from an image file")
 
     subparsers.add_parser("list", help="List models")
     pull_parser = subparsers.add_parser("pull", help="Download model")
@@ -623,7 +600,7 @@ def main():
         if sum([args.wiki, args.arxiv, args.ddg, bool(args.docs)]) > 1:
             console.print("❌ [red]Use only one: --wiki, --arxiv, --ddg, or --docs[/red]")
         else:
-            run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, draw=args.draw, doc_path=args.docs)
+            run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, doc_path=args.docs)
     elif args.command == "list":
         list_models()
     elif args.command == "pull":
