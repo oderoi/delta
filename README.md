@@ -87,17 +87,17 @@ ii. Open Terminal and run:
 
 - Download the installer
     ```bash
-    curl -O https://nileagi.com/delta-installer-macos.sh
+    curl -O https://nileagi.com/delta-installer-v1-macos.sh
     ```
 
 - Make the script executable
     ```bash
-    chmod +x curl delta-installer-macos.sh
+    chmod +x curl delta-installer-v1-macos.sh
     ```
 
 - Run the installation script
     ```bash
-    ./delta-installer-macos.sh
+    ./delta-installer-v1-macos.sh
     ```
 
 
@@ -135,17 +135,17 @@ ii. Open Terminal and run:
 
 - Download the installer
     ```bash
-    curl -O https://nileagi.com/delta-installer-linux.sh
+    curl -O https://nileagi.com/delta-installer-v1-linux.sh
     ```
 
 - Make the script executable
     ```bash
-    chmod +x curl delta-installer-linux.sh
+    chmod +x curl delta-installer-v1-linux.sh
     ```
 
 - Run the installation script
     ```bash
-    ./delta-installer-linux.sh
+    ./delta-installer-v1-linux.sh
     ``` 
 
 **The installer will:**
