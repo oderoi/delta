@@ -292,6 +292,11 @@ delta run llama3.1:latest --docs /home/Documents/computer_vision_nlp.pdf
 delta run llama3.1:latest --docs C:\Users\home\Documents\computer_vision_nlp.pdf
 ```
 
+### **Check your sys specs and Model Recomendations**
+```bash
+delta check
+```
+
 ### **View your Chat History**
 
 ```bash
