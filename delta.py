@@ -17,6 +17,9 @@ import json
 from prompt_toolkit import PromptSession
 from prompt_toolkit.key_binding import KeyBindings
 import pyperclip
+import pynvml
+import psutil
+import cpuinfo
 
 # Initialize rich console
 console = Console()
@@ -497,7 +500,7 @@ def setup_delta():
         pip_path = env_dir / "bin" / "pip"
         python_path = env_dir / "bin" / "python"
     
-    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search", "PyPDF2", "python-docx", "prompt_toolkit", "pyperclip"]
+    libraries = ["rich", "ollama", "wikipedia", "arxiv", "Pillow", "duckduckgo_search", "PyPDF2", "python-docx", "prompt_toolkit", "pyperclip", "pynvml", "psutil", "py-cpuinfo"]
     try:
         subprocess.run([str(pip_path), "install", "--upgrade", "pip"], check=True)
         console.print("[green]Upgraded pip in virtual environment[/green]")
@@ -571,6 +574,124 @@ def setup_delta():
     else:
         console.print("[bold green]Setup complete! On Windows, run: 'python delta.py run mistral --docs C:\\path\\to\\document.pdf'[/bold green]")
 
+def is_model_available(model_name):
+    """Chek if the specified model is available locally."""
+    import ollama
+    try:
+        response = ollama.list()
+        models = response.get('models', [])
+        for model in models:
+            if model.get('model') == model_name:
+                return True
+        return False
+    except Exception as e:
+        console.print(f"❌ [red]Error checking models: {str(e)}[\red]")
+        return False
+
+def get_max_category(P_billion):
+    if P_billion < 1:
+        return "Nano/Tiny (<1B)"
+    elif P_billion <= 7:
+        return "Small (1B–7B)"
+    elif P_billion <= 30:
+        return "Medium (8B–30B)"
+    elif P_billion <= 70:
+        return "Large (30B–70B)"
+    elif P_billion <= 180:
+        return "X-Large (70B–180B)"
+    else:
+        return "Frontier/Trillion (>200B)"
+
+def check_hardware():
+    # Check GPU
+    gpu_available = False
+    max_vram = 0
+    try:
+        pynvml.nvmlInit()
+        deviceCount = pynvml.nvmlDeviceGetCount()
+        if deviceCount > 0:
+            gpu_available = True
+            vram_list = []
+            for i in range(deviceCount):
+                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+                memoryInfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                vram = memoryInfo.total / 1e9  # Convert bytes to GB
+                vram_list.append(vram)
+            max_vram = max(vram_list)
+            console.print(f"[green]Found {deviceCount} NVIDIA GPU(s). The GPU with the most VRAM has {max_vram:.2f} GB.[/green]")
+        else:
+            console.print("[yellow]No NVIDIA GPUs found.[/yellow]")
+    except ImportError:
+        console.print("[red]pynvml is not installed. Please run 'delta setup' to install dependencies.[/red]")
+    except pynvml.NVMLError:
+        console.print("[yellow]No NVIDIA GPUs found or drivers not installed.[/yellow]")
+    finally:
+        try:
+            pynvml.nvmlShutdown()
+        except:
+            pass
+
+    # Check CPU details
+    try:
+        cpu_info = cpuinfo.get_cpu_info()
+        cpu_model = cpu_info.get('brand_raw', 'Unknown')
+        l3_cache = cpu_info.get('l3_cache_size', 'Unknown')
+        if l3_cache != 'Unknown':
+            l3_cache = int(l3_cache) / (1024 * 1024)  # Convert bytes to MB
+            l3_cache = f"{l3_cache:.1f} MB"
+    except Exception as e:
+        console.print(f"[yellow]Could not retrieve detailed CPU information: {e}[/yellow]")
+        cpu_model = "Unknown"
+        l3_cache = "Unknown"
+
+    physical_cores = psutil.cpu_count(logical=False)
+    logical_cores = psutil.cpu_count(logical=True)
+    if physical_cores and logical_cores:
+        threads_per_core = logical_cores / physical_cores
+    else:
+        threads_per_core = "Unknown"
+
+    cpu_freq = psutil.cpu_freq().current / 1000 if psutil.cpu_freq() else "Unknown"  # Convert to GHz
+    ram_total = psutil.virtual_memory().total / 1e9  # Convert to GB
+
+    # Display hardware info
+    console.print(f"[green]CPU Model: {cpu_model}[/green]")
+    console.print(f"[green]CPU Cores: {physical_cores}[/green]")
+    console.print(f"[green]Threads per Core: {threads_per_core:.1f}" if threads_per_core != "Unknown" else "Unknown[/green]")
+    console.print(f"[green]CPU Frequency: {cpu_freq:.2f} GHz[/green]" if cpu_freq != "Unknown" else "[yellow]CPU Frequency: Unknown[/yellow]")
+    console.print(f"[green]L3 Cache: {l3_cache}[/green]")
+    console.print(f"[green]RAM: {ram_total:.2f} GB[/green]")
+
+    # Provide recommendations with speed estimations
+    console.print("\n**Recommendations for Running LLMs:**")
+    if gpu_available:
+        bandwidth = 30e9 * max_vram  # Estimated bandwidth in B/s
+        console.print("**With your GPU:**")
+        for precision, bytes_per_param in [("16-bit", 2), ("8-bit", 1), ("4-bit", 0.5)]:
+            P = (max_vram * 1e9) / bytes_per_param  # Maximum parameters
+            P_billion = P / 1e9
+            if P_billion < 0.1:
+                console.print(f"- In {precision} precision, your GPU VRAM is too small for most LLMs.")
+                continue
+            category = get_max_category(P_billion)
+            tokens_sec = (0.5 * bandwidth) / P  # Estimated tokens/sec
+            console.print(f"- In {precision} precision, you can run models up to ~{P_billion:.1f}B parameters ({category}), with estimated speed of ~{tokens_sec:.1f} tokens/sec for such a model.")
+    else:
+        bandwidth = 50e9  # Default CPU bandwidth in B/s
+        effective_memory = ram_total / 2  # Assume 50% of RAM for model
+        console.print("**Without GPU, using CPU and RAM:**")
+        for precision, bytes_per_param in [("16-bit", 2), ("8-bit", 1), ("4-bit", 0.5)]:
+            P = (effective_memory * 1e9) / bytes_per_param  # Maximum parameters
+            P_billion = P / 1e9
+            if P_billion < 0.1:
+                console.print(f"- In {precision} precision, your RAM is too small for most LLMs.")
+                continue
+            category = get_max_category(P_billion)
+            tokens_sec = (0.5 * bandwidth) / P  # Estimated tokens/sec
+            console.print(f"- In {precision} precision, you can load models up to ~{P_billion:.1f}B parameters ({category}), with estimated speed of ~{tokens_sec:.1f} tokens/sec for such a model. Note that CPU inference is slower than GPU.")
+
+    console.print("\n[italic]Note: These are estimates based on typical hardware performance and model characteristics. Actual speeds may vary depending on specific model architecture, batch size, and sequence length.[/italic]")
+
 def main():
     """Parse arguments and execute commands."""
     parser = argparse.ArgumentParser(description="Delta CLI: Concise, Addictive Q&A")
@@ -593,14 +714,18 @@ def main():
     
     hist_parser = subparsers.add_parser("hist", help="Display or clear chat history")
     hist_parser.add_argument("--clear", action="store_true", help="Clear chat history")
+    check_parser = subparsers.add_parser("check", help="Check hardware capabilities for running LLMs")
 
     args = parser.parse_args()
 
     if args.command == "run":
-        if sum([args.wiki, args.arxiv, args.ddg, bool(args.docs)]) > 1:
-            console.print("❌ [red]Use only one: --wiki, --arxiv, --ddg, or --docs[/red]")
+        if not is_model_available(args.model):
+            console.print(f"❌ [red]Sorry, this model '{args.model}' is not yet downloaded, Please check available models with 'delta list' or download a new model'.[/red]")
         else:
-            run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, doc_path=args.docs)
+            if sum([args.wiki, args.arxiv, args.ddg, bool(args.docs)]) > 1:
+                console.print("❌ [red]Use only one: --wiki, --arxiv, --ddg, or --docs[/red]")
+            else:
+                run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, doc_path=args.docs)
     elif args.command == "list":
         list_models()
     elif args.command == "pull":
@@ -614,6 +739,8 @@ def main():
             clear_history()
         else:
             display_history()
+    elif args.command == "check":
+        check_hardware()
     else:
         parser.print_help()
 
