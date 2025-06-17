@@ -13,7 +13,7 @@
 
 **Access open source LLMs in your local machine**
 
-[Announcement Blog Post](https://www.nileagi.com/products/delta)
+[Announcement Blog Post](https://www.nileagi.com/blog/delta-accessible-ai)
 
 > # Introduction to Delta
 
