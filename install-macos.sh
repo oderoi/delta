@@ -185,7 +185,7 @@ fi
 
 echo -e "${GREEN}Installation complete!${NC}"
 echo -e "By default, Delta comes with the deepseek-r1:1.5b model pre-installed."
-echo -e "You can now use Delta by typing 'delta --version' in your terminal."
+echo -e "You can now use Delta by typing 'delta' in your terminal."
 echo -e "${YELLOW}Note: If you just added Delta to your PATH, please restart your terminal or run:${NC}"
 echo -e "source ~/.zshrc  # for zsh"
 echo -e "source ~/.bashrc  # for bash" 

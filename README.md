@@ -36,6 +36,33 @@ Before installing Delta, ensure your system meets these requirements:
 
 ## Installation Instructions
 
+### Quick Install with pip (Recommended)
+
+The easiest way to install Delta is using pip:
+
+```bash
+pip install delta-ai
+```
+
+After installation, you can use Delta immediately:
+
+```bash
+# Check if installation was successful
+delta --help
+
+# List available models
+delta list
+
+# Run a model (will download if not available)
+delta run mistral
+```
+
+**Note**: This method requires Python 3.8+ and pip to be installed on your system.
+
+### Alternative Installation Methods
+
+If you prefer not to use pip or need a custom installation, you can use the platform-specific installers below.
+
 ### Windows
 
 <!-- 1. Download the installer from [https://nileagi.com/products/delta/installable/delta-installer.exe](https://nileagi.com/products/delta/installable/delta-installer.exe)
