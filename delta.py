@@ -546,7 +546,7 @@ def setup_delta():
         shell_configs = [
             (Path.home() / ".bashrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
             (Path.home() / ".zshrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
-           #  (Path.home() / ".config" / "fish" / "config.fish", 'set -gx PATH $HOME/bin $PATH', "# Delta CLI PATH")
+            # (Path.home() / ".config" / "fish" / "config.fish", 'set -gx PATH $HOME/bin $PATH', "# Delta CLI PATH")
         ]
         
         for config_path, path_line, comment in shell_configs:
@@ -694,11 +694,11 @@ def check_hardware():
 
 def main():
     """Parse arguments and execute commands."""
-    parser = argparse.ArgumentParser(description="Delta CLI: Concise, Addictive Q&A")
+    parser = argparse.ArgumentParser(description="Delta CLI: A local Inferencing tool, birngs powerful language models to your CPU")
     parser.add_argument("--version", action="version", version="delta v2.0")
     subparsers = parser.add_subparsers(dest="command")
 
-    run_parser = subparsers.add_parser("run", help="Run model with optional Wiki/arXiv/DuckDuckGo/docs")
+    run_parser = subparsers.add_parser("run", help="Run model with [Flags] Wiki/arXiv/DuckDuckGo/docs")
     run_parser.add_argument("model", help="Model name")
     run_parser.add_argument("--wiki", action="store_true", help="Search Wikipedia")
     run_parser.add_argument("--arxiv", action="store_true", help="Search arXiv")
