@@ -569,7 +569,7 @@ def setup_delta():
         console.print("[bold green]Setup complete! To activate Delta, run one of the following:[/bold green]")
         console.print("[bold][cyan]Bash:[/cyan][/bold] source ~/.bashrc")
         console.print("[bold][cyan]Zsh:[/cyan][/bold] source ~/.zshrc")
-        console.print("[bold][cyan]Fish:[/cyan][/bold] source ~/.config/fish/config.fish")
+        # console.print("[bold][cyan]Fish:[/cyan][/bold] source ~/.config/fish/config.fish")
         console.print("[bold green]Then run 'delta' from anywhere! Example: 'delta run mistral --docs /path/to/document.pdf'[/bold green]")
     else:
         console.print("[bold green]Setup complete! On Windows, run: 'python delta.py run mistral --docs C:\\path\\to\\document.pdf'[/bold green]")
