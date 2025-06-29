@@ -229,7 +229,7 @@ def get_context(query, use_wiki=False, use_arxiv=False, use_ddg=False, doc_path=
         return fetch_duckduckgo_context(query)
     return "", [], [], ""
 
-def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, doc_path=None):
+def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, doc_path=None, use_think=False):
     """Run interactive session with streamlined responses or generate dot art."""
     import ollama
     from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -312,16 +312,20 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, doc_pa
 
         query_streak += 1
         query_history.append(user_input)
+        
+        if use_think:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                transient=True
+            ) as progress:
+                task = progress.add_task("Processing query...", total=None)
+                thought = think_about_question(model_name, user_input)
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True
-        ) as progress:
-            task = progress.add_task("Processing query...", total=None)
-            thought = think_about_question(model_name, user_input)
+            refined_query = f"{user_input} {thought}"
+        else:
+            refined_query = user_input
 
-        refined_query = f"{user_input} {thought}"
         context, citations, images, url = get_context(refined_query, use_wiki, use_arxiv, use_ddg, doc_path)
 
         if not context:
@@ -394,7 +398,7 @@ def list_models():
     table.add_column("Size", justify="right")
     table.add_column("Modified At", justify="right")
     table.add_column("Format")
-    table.add_column("Family")
+    #table.add_column("Family")
     table.add_column("Parameters")
     table.add_column("Quantization")
 
@@ -405,11 +409,12 @@ def list_models():
         modified_at = mod_at.strftime('%Y-%m-%d %H:%M') if mod_at else 'N/A'
         details = model.get('details', {})
         fmt = details.get('format', 'N/A')
-        family = details.get('family', 'N/A')
+        #family = details.get('family', 'N/A')
         params = details.get('parameter_size', 'N/A').replace('B', '') + "B" if details.get('parameter_size') else 'N/A'
         quant = details.get('quantization_level', 'N/A')
 
-        table.add_row(name, size, modified_at, fmt, family, params, quant)
+        #table.add_row(name, size, modified_at, fmt, family, params, quant)
+        table.add_row(name, size, modified_at, fmt, params, quant)
 
     console.print("📋 [bold]Installed Models:[/bold]")
     console.print(table)
@@ -693,17 +698,57 @@ def check_hardware():
     console.print("\n[italic]Note: These are estimates based on typical hardware performance and model characteristics. Actual speeds may vary depending on specific model architecture, batch size, and sequence length.[/italic]")
 
 def main():
-    """Parse arguments and execute commands."""
-    parser = argparse.ArgumentParser(description="Delta CLI: A local Inferencing tool, birngs powerful language models to your CPU")
+    """Parse arguments and execute commands.""" 
+    custom_help_message = """Delta CLI:
+        A local Inferencing tool, brings powerful language models to your CPU.
+
+Usage:
+        delta    [command]    [Flags]
+        delta    [command]
+
+Available Commands:
+        run                    Run model with [Flags]
+        list                   List models
+        pull                   Download model
+        remove                 Remove model
+        hist                   Display or clear chat history
+        check                  Check hardware capabilities for running LLMs
+
+Available Flags:
+        --wiki                 Searching Wikipedia
+        --ddg                  Searching DuckDuckGo
+        --docs                 Searching through local documents
+        --think                Allow delta to take some time to think
+        --clear                Clear all the history
+        --version              Show Delta version
+        --help/-h              help for delta"""
+
+    # Define the custom action
+    class CustomHelpAction(argparse.Action):
+        def __call__(self, parser, namespace, values=None, option_string=None):
+            print(custom_help_message)
+            sys.exit(0)
+    
+    # Create the parser with add_help=False to disable default help
+    parser = argparse.ArgumentParser(add_help=False)
+
+    # Add custom --help and -h options
+    parser.add_argument("--help", "-h", action=CustomHelpAction, nargs=0, help=argparse.SUPPRESS)
+
+    # Add --version flag
     parser.add_argument("--version", action="version", version="delta v2.0")
+
+    # Add subparsers for commands
     subparsers = parser.add_subparsers(dest="command")
 
+    # Define subcommands with their help messages
     run_parser = subparsers.add_parser("run", help="Run model with [Flags] Wiki/arXiv/DuckDuckGo/docs")
     run_parser.add_argument("model", help="Model name")
     run_parser.add_argument("--wiki", action="store_true", help="Search Wikipedia")
     run_parser.add_argument("--arxiv", action="store_true", help="Search arXiv")
     run_parser.add_argument("--ddg", action="store_true", help="Search DuckDuckGo for current information")
     run_parser.add_argument("--docs", help="Path to a document file (.txt, .pdf, .docx)")
+    run_parser.add_argument("--think", action="store_true", help="Include thinking step to analyze the question")
 
     subparsers.add_parser("list", help="List models")
     pull_parser = subparsers.add_parser("pull", help="Download model")
@@ -716,7 +761,18 @@ def main():
     hist_parser.add_argument("--clear", action="store_true", help="Clear chat history")
     check_parser = subparsers.add_parser("check", help="Check hardware capabilities for running LLMs")
 
+
+    # Parse arguments
     args = parser.parse_args()
+
+    # Placeholder for command execution logic
+    if not args.command:
+        print(custom_help_message)
+        sys.exit(0) 
+    
+        # Placeholder for command execution logic
+        print(f"Executing command: {args.command}")
+
 
     if args.command == "run":
         if not is_model_available(args.model):
@@ -725,7 +781,7 @@ def main():
             if sum([args.wiki, args.arxiv, args.ddg, bool(args.docs)]) > 1:
                 console.print("❌ [red]Use only one: --wiki, --arxiv, --ddg, or --docs[/red]")
             else:
-                run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, doc_path=args.docs)
+                run_model(args.model, use_wiki=args.wiki, use_arxiv=args.arxiv, use_ddg=args.ddg, doc_path=args.docs, use_think=args.think)
     elif args.command == "list":
         list_models()
     elif args.command == "pull":
