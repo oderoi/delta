@@ -464,7 +464,7 @@ def remove_model(model_name):
     """Remove a model."""
     import ollama
     console.print(f"🗑️ [yellow]Removing {model_name}...[/yellow]")
-    ollama.remove(model_name)
+    ollama.delete(model_name)
     console.print(f"✅ [green]{model_name} removed![/green]")
 
 def setup_delta():
