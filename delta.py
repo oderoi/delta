@@ -4,6 +4,7 @@ import argparse
 from rich.console import Console
 from functools import lru_cache
 import time
+import random
 import sys
 import threading
 import os
@@ -115,9 +116,10 @@ def fetch_wikipedia_context(query):
 def fetch_arxiv_context(query):
     """Fetch concise context from arXiv."""
     import arxiv
+    client = arxiv.Client()
     try:
         search = arxiv.Search(query=query, max_results=1, sort_by=arxiv.SortCriterion.Relevance)
-        results = list(search.results())
+        results = list(client.results(search))
         if results:
             paper = results[0]
             context = f"{paper.title}: {paper.summary[:200]}..."
@@ -129,14 +131,56 @@ def fetch_arxiv_context(query):
         console.print(f"❌ [red]arXiv Error: {str(e)}[/red]")
         return "", [], [], ""
 
+# Rate limiting parameters
+MIN_INTERVAL = 300  # 5 minutes between requests
+RATE_LIMIT_FILE = Path.home() / ".delta" / "ddg_last_request.txt"
+
+def update_last_request_time():
+    """Update the timestamp of the last DuckDuckGo request."""
+    RATE_LIMIT_FILE.parent.mkdir(exist_ok=True)
+    with open(RATE_LIMIT_FILE, "w") as f:
+        f.write(str(time.time()))
+
+def get_last_request_time():
+    """Read the timestamp of the last DuckDuckGo request."""
+    if RATE_LIMIT_FILE.exists():
+        with open(RATE_LIMIT_FILE, "r") as f:
+            try:
+                return float(f.read().strip())
+            except ValueError:
+                return 0
+    return 0
+
 @lru_cache(maxsize=128)
 def fetch_duckduckgo_context(query):
-    """Fetch concise context from DuckDuckGo for current information."""
+    """Fetch concise context from DuckDuckGo with strict rate limiting."""
+    current_time = time.time()
+    last_request_time = get_last_request_time()
+    time_since_last = current_time - last_request_time
+
+    # Enforce minimum interval between requests
+    if time_since_last < MIN_INTERVAL:
+        wait_time = MIN_INTERVAL - time_since_last
+        console.print(f"[yellow]Rate limit: Waiting {wait_time:.1f} seconds before next request...[/yellow]")
+        time.sleep(wait_time)
+
+    # Update timestamp before making the request
+    update_last_request_time()
+
     from duckduckgo_search import DDGS
+
     try:
-        time.sleep(1)
-        with DDGS(timeout=30) as ddgs:
-            results = ddgs.text(query, max_results=2)
+        # Enhanced browser-like headers
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Referer": "https://www.google.com/",
+            "Connection": "keep-alive"
+        }
+        with DDGS(timeout=20, headers=headers) as ddgs:
+            results = ddgs.text(query, region='wt-wt', safesearch='off', timelimit='y', max_results=2)
         if results:
             context = ""
             citations = []
@@ -148,8 +192,13 @@ def fetch_duckduckgo_context(query):
             return context, citations, [], citations[0] if citations else ""
         return "", [], [], ""
     except Exception as e:
-        console.print(f"❌ [red]DuckDuckGo Error: {str(e)}[/red]")
-        return "", [], [], ""
+        error_msg = str(e)
+        if "Ratelimit" in error_msg:
+            console.print(f"[yellow]Rate limit hit: {error_msg}. Please wait {MIN_INTERVAL/60:.1f} minutes before trying again.[/yellow]")
+            return "", [], [], ""  # No immediate retry
+        else:
+            console.print(f"❌ [red]DuckDuckGo Error: {error_msg}[/red]")
+            return "", [], [], ""
 
 def read_text_file(file_path):
     """Read content from a text file."""
@@ -321,12 +370,20 @@ def run_model(model_name, use_wiki=False, use_arxiv=False, use_ddg=False, doc_pa
             ) as progress:
                 task = progress.add_task("Processing query...", total=None)
                 thought = think_about_question(model_name, user_input)
-
+                progress.update(task, completed=True)  # Ensure spinner stops
             refined_query = f"{user_input} {thought}"
         else:
             refined_query = user_input
 
-        context, citations, images, url = get_context(refined_query, use_wiki, use_arxiv, use_ddg, doc_path)
+        # Add spinner for context fetching
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True
+        ) as progress:
+            task = progress.add_task("Fetching context...", total=None)
+            context, citations, images, url = get_context(refined_query, use_wiki, use_arxiv, use_ddg, doc_path)
+            progress.update(task, completed=True)  # Ensure spinner stops
 
         if not context:
             prompt = f"Question: {user_input}\nAnswer concisely using your knowledge."
@@ -398,7 +455,6 @@ def list_models():
     table.add_column("Size", justify="right")
     table.add_column("Modified At", justify="right")
     table.add_column("Format")
-    #table.add_column("Family")
     table.add_column("Parameters")
     table.add_column("Quantization")
 
@@ -409,11 +465,9 @@ def list_models():
         modified_at = mod_at.strftime('%Y-%m-%d %H:%M') if mod_at else 'N/A'
         details = model.get('details', {})
         fmt = details.get('format', 'N/A')
-        #family = details.get('family', 'N/A')
         params = details.get('parameter_size', 'N/A').replace('B', '') + "B" if details.get('parameter_size') else 'N/A'
         quant = details.get('quantization_level', 'N/A')
 
-        #table.add_row(name, size, modified_at, fmt, family, params, quant)
         table.add_row(name, size, modified_at, fmt, params, quant)
 
     console.print("📋 [bold]Installed Models:[/bold]")
@@ -551,7 +605,6 @@ def setup_delta():
         shell_configs = [
             (Path.home() / ".bashrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
             (Path.home() / ".zshrc", 'export PATH="$HOME/bin:$PATH"', "# Delta CLI PATH"),
-            # (Path.home() / ".config" / "fish" / "config.fish", 'set -gx PATH $HOME/bin $PATH', "# Delta CLI PATH")
         ]
         
         for config_path, path_line, comment in shell_configs:
@@ -574,13 +627,12 @@ def setup_delta():
         console.print("[bold green]Setup complete! To activate Delta, run one of the following:[/bold green]")
         console.print("[bold][cyan]Bash:[/cyan][/bold] source ~/.bashrc")
         console.print("[bold][cyan]Zsh:[/cyan][/bold] source ~/.zshrc")
-        # console.print("[bold][cyan]Fish:[/cyan][/bold] source ~/.config/fish/config.fish")
         console.print("[bold green]Then run 'delta' from anywhere! Example: 'delta run mistral --docs /path/to/document.pdf'[/bold green]")
     else:
         console.print("[bold green]Setup complete! On Windows, run: 'python delta.py run mistral --docs C:\\path\\to\\document.pdf'[/bold green]")
 
 def is_model_available(model_name):
-    """Chek if the specified model is available locally."""
+    """Check if the specified model is available locally."""
     import ollama
     try:
         response = ollama.list()
@@ -630,11 +682,6 @@ def check_hardware():
         console.print("[red]pynvml is not installed. Please run 'delta setup' to install dependencies.[/red]")
     except pynvml.NVMLError:
         console.print("[yellow]No NVIDIA GPUs found or drivers not installed.[/yellow]")
-    finally:
-        try:
-            pynvml.nvmlShutdown()
-        except:
-            pass
 
     # Check CPU details
     try:
@@ -657,9 +704,8 @@ def check_hardware():
         threads_per_core = "Unknown"
 
     cpu_freq = psutil.cpu_freq().current / 1000 if psutil.cpu_freq() else "Unknown"  # Convert to GHz
-    ram_total = psutil.virtual_memory().total / 1e9  # Convert to GB
+    ram_total = psutil.virtual_memory().total /  gagn
 
-    # Display hardware info
     console.print(f"[green]CPU Model: {cpu_model}[/green]")
     console.print(f"[green]CPU Cores: {physical_cores}[/green]")
     console.print(f"[green]Threads per Core: {threads_per_core:.1f}" if threads_per_core != "Unknown" else "Unknown[/green]")
@@ -761,7 +807,6 @@ Available Flags:
     hist_parser.add_argument("--clear", action="store_true", help="Clear chat history")
     check_parser = subparsers.add_parser("check", help="Check hardware capabilities for running LLMs")
 
-
     # Parse arguments
     args = parser.parse_args()
 
@@ -770,10 +815,6 @@ Available Flags:
         print(custom_help_message)
         sys.exit(0) 
     
-        # Placeholder for command execution logic
-        print(f"Executing command: {args.command}")
-
-
     if args.command == "run":
         if not is_model_available(args.model):
             console.print(f"❌ [red]Sorry, this model '{args.model}' is not yet downloaded, Please check available models with 'delta list' or download a new model'.[/red]")
