@@ -21,6 +21,8 @@ import pyperclip
 import pynvml
 import psutil
 import cpuinfo
+import re
+from difflib import SequenceMatcher
 
 # Initialize rich console
 console = Console()
@@ -93,22 +95,75 @@ def think_about_question(model_name, question):
     console.print()
     return thought
 
+def preprocess_query(query):
+    """Clean and optimize query for better Wikipedia search."""
+    # Remove stop words and normalize
+    stop_words = {'a', 'was', 'an', 'the', 'is', 'are', 'in', 'on', 'at', 'to', 'for', 'of', 'with'}
+    query = query.lower().strip()
+    query = re.sub(r'[^\w\s]', '', query)  # Remove punctuation
+    words = [word for word in query.split() if word not in stop_words]
+    return ' '.join(words)
+
+def similarity_score(a, b):
+    """Calculate similarity between two strings."""
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
 @lru_cache(maxsize=128)
 def fetch_wikipedia_context(query):
-    """Fetch concise context from Wikipedia."""
+    """Fetch concise context from Wikipedia with improved relevance and disambiguation handling."""
     import wikipedia
     from requests.exceptions import RequestException
+
     try:
-        search_results = wikipedia.search(query, results=1)
+        # Search for up to 3 results to find the most relevant
+        processed_query = preprocess_query(query)
+        search_results = wikipedia.search(processed_query, results=3)
         if not search_results:
+            console.print("[yellow]\nNo Wikipedia results found.[/yellow]")
             return "", [], [], ""
-        page = wikipedia.page(search_results[0], auto_suggest=False)
-        summary = page.summary[:300] + "..."
-        citations = page.references[:2]
-        url = page.url
-        console.print(f"📖 [yellow]Wiki: {page.title}[/yellow]")
-        return summary, citations, [], url
-    except (wikipedia.exceptions.PageError, wikipedia.exceptions.DisambiguationError, RequestException) as e:
+
+        best_result = None
+        best_score = 0
+        best_summary = ""
+        best_citations = []
+        best_url = ""
+
+        for result in search_results:
+            try:
+                page = wikipedia.page(result, auto_suggest=False)
+                summary = wikipedia.summary(result, sentences=3, auto_suggest=False)
+                score = similarity_score(processed_query, page.title)
+                if score > best_score:
+                    best_score = score
+                    best_result = page
+                    best_summary = summary[:1000] + "..." if len(summary) > 1000 else summary
+                    best_citations = page.references[:3]
+                    best_url = page.url
+            except wikipedia.exceptions.DisambiguationError as e:
+                # Try the first option from disambiguation
+                if e.options:
+                    try:
+                        page = wikipedia.page(e.options[0], auto_suggest=False)
+                        summary = wikipedia.summary(e.options[0], sentences=3, auto_suggest=False)
+                        score = similarity_score(processed_query, page.title)
+                        if score > best_score:
+                            best_score = score
+                            best_result = page
+                            best_summary = summary[:1000] + "..." if len(summary) > 1000 else summary
+                            best_citations = page.references[:3]
+                            best_url = page.url
+                    except Exception:
+                        continue
+            except wikipedia.exceptions.PageError:
+                continue
+
+        if best_result:
+            console.print(f"\n📖 [yellow]Wiki: {best_result.title}[/yellow]")
+            return best_summary, best_citations, [], best_url
+        else:
+            console.print("[yellow]\nNo relevant Wikipedia page found after trying multiple results.[/yellow]")
+            return "", [], [], ""
+    except RequestException as e:
         console.print(f"❌ [red]Wiki Error: {str(e)}[/red]")
         return "", [], [], ""
 
@@ -195,7 +250,7 @@ def fetch_duckduckgo_context(query):
         error_msg = str(e)
         if "Ratelimit" in error_msg:
             console.print(f"[yellow]Rate limit hit: {error_msg}. Please wait {MIN_INTERVAL/60:.1f} minutes before trying again.[/yellow]")
-            return "", [], [], ""  # No immediate retry
+            return "", [], [], ""
         else:
             console.print(f"❌ [red]DuckDuckGo Error: {error_msg}[/red]")
             return "", [], [], ""
@@ -642,7 +697,7 @@ def is_model_available(model_name):
                 return True
         return False
     except Exception as e:
-        console.print(f"❌ [red]Error checking models: {str(e)}[\red]")
+        console.print(f"❌ [red]Error checking models: {str(e)}[/red]")
         return False
 
 def get_max_category(P_billion):
@@ -682,6 +737,11 @@ def check_hardware():
         console.print("[red]pynvml is not installed. Please run 'delta setup' to install dependencies.[/red]")
     except pynvml.NVMLError:
         console.print("[yellow]No NVIDIA GPUs found or drivers not installed.[/yellow]")
+    finally:
+        try:
+            pynvml.nvmlShutdown()
+        except:
+            pass
 
     # Check CPU details
     try:
@@ -704,13 +764,13 @@ def check_hardware():
         threads_per_core = "Unknown"
 
     cpu_freq = psutil.cpu_freq().current / 1000 if psutil.cpu_freq() else "Unknown"  # Convert to GHz
-    ram_total = psutil.virtual_memory().total /  gagn
+    ram_total = psutil.virtual_memory().total / 1e9  # Convert to GB
 
+    # Display hardware info
     console.print(f"[green]CPU Model: {cpu_model}[/green]")
     console.print(f"[green]CPU Cores: {physical_cores}[/green]")
-    console.print(f"[green]Threads per Core: {threads_per_core:.1f}" if threads_per_core != "Unknown" else "Unknown[/green]")
+    console.print(f"[green]Threads per Core: {threads_per_core:.1f}" if threads_per_core != "Unknown" else "[yellow]Threads per Core: Unknown[/yellow]")
     console.print(f"[green]CPU Frequency: {cpu_freq:.2f} GHz[/green]" if cpu_freq != "Unknown" else "[yellow]CPU Frequency: Unknown[/yellow]")
-    console.print(f"[green]L3 Cache: {l3_cache}[/green]")
     console.print(f"[green]RAM: {ram_total:.2f} GB[/green]")
 
     # Provide recommendations with speed estimations
