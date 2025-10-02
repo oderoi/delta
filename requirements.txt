@@ -1,13 +1,4 @@
-rich
-ollama
-wikipedia
-arxiv
-Pillow
-duckduckgo_search
-PyPDF2
-python-docx
-prompt_toolkit
-pyperclip
-psutil
-pynvml
-py-cpuinfo
+llama-cpp-python>=0.2.78
+huggingface-hub>=0.20.3
+click>=8.1.7
+wikipedia>=1.4.0  # For your search feature
