@@ -823,6 +823,7 @@ Available Commands:
 Available Flags:
         --wiki                 Searching Wikipedia
         --ddg                  Searching DuckDuckGo
+        --arxiv                Search arXiv paper
         --docs                 Searching through local documents
         --think                Allow delta to take some time to think
         --clear                Clear all the history
