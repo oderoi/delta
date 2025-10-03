@@ -1,4 +1,4 @@
 llama-cpp-python>=0.2.85
 huggingface-hub>=0.20.3
 click>=8.1.7
-wikipedia>=1.4.0  # For your search feature
+wikipedia>=1.4.0

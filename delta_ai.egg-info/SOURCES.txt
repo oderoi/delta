@@ -1,0 +1,15 @@
+README.md
+setup.py
+delta/__init__.py
+delta/cli.py
+delta/config.py
+delta/inference.py
+delta/models.py
+delta/search.py
+delta_ai.egg-info/PKG-INFO
+delta_ai.egg-info/SOURCES.txt
+delta_ai.egg-info/dependency_links.txt
+delta_ai.egg-info/entry_points.txt
+delta_ai.egg-info/requires.txt
+delta_ai.egg-info/top_level.txt
+tests/test_delta.py

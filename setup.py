@@ -8,13 +8,14 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
+    include_package_data=True,
     entry_points={
         "console_scripts": [
             "delta = delta.cli:cli"
         ]
     },
     install_requires=[
-        "llama-cpp-python>=0.2.78",
+        "llama-cpp-python>=0.2.85",
         "huggingface-hub>=0.20.3",
         "click>=8.1.7",
         "wikipedia>=1.4.0",
@@ -24,5 +25,6 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        "Topic :: Scietific/Engineering :: Artificial Intelligence",
     ],
 )
