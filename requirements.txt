@@ -1,13 +1,9 @@
-rich
-ollama
-wikipedia
-arxiv
-Pillow
-duckduckgo_search
-PyPDF2
-python-docx
-prompt_toolkit
-pyperclip
-psutil
-pynvml
-py-cpuinfo
+requests>=2.31.0
+duckduckgo-search>=3.0.0
+wikipedia>=1.4.0
+PyPDF2>=3.0.0
+click>=8.1.0
+tabulate>=0.9.0
+colorama>=0.4.6
+huggingface_hub>=0.20.0
+pytest>=7.0.0  # For testing

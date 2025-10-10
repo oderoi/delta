@@ -1,76 +1,49 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "delta-ai"
-dynamic = ["version"]
-description = "Access open source LLMs in your local machine with CLI support"
+name = "delta"
+version = "1.0.0"
+description = "A lightweight CLI for running local LLMs using llama.cpp"
 readme = "README.md"
-license = "MIT"
-authors = [
-    {name = "Nile AGI", email = "support@nileagi.com"}
-]
-maintainers = [
-    {name = "Nile AGI", email = "support@nileagi.com"}
-]
-keywords = ["ai", "llm", "local", "inference", "ollama", "cli", "artificial intelligence", "machine learning"]
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "Oderoi"}]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Intended Audience :: End Users/Desktop",
-    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: System :: Systems Administration",
-    "Topic :: Utilities",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]
-requires-python = ">=3.8"
 dependencies = [
-    "rich",
-    "ollama",
-    "wikipedia",
-    "arxiv",
-    "Pillow",
-    "duckduckgo_search",
-    "PyPDF2",
-    "python-docx",
-    "prompt_toolkit",
-    "pyperclip",
-    "psutil",
-    "pynvml",
-    "py-cpuinfo",
+    "requests>=2.31.0",
+    "duckduckgo-search>=3.0.0",
+    "wikipedia>=1.4.0",
+    "PyPDF2>=3.0.0",
+    "click>=8.1.0",
+    "tabulate>=0.9.0",
+    "colorama>=0.4.6",
+    "huggingface_hub>=0.20.0",
+    "tqdm>=4.66.0",
+    "psutil>=5.9.0",
+    "nvidia-ml-py>=12.560.30; platform_system=='Linux' or platform_system=='Windows'",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
-    "black>=21.0",
-    "flake8>=3.8",
-    "mypy>=0.800",
-]
-
-[project.urls]
-Homepage = "https://github.com/oderoi/delta"
-Documentation = "https://nileagi.com/products/delta"
-Repository = "https://github.com/oderoi/delta"
-"Bug Tracker" = "https://github.com/oderoi/delta/issues"
-
 [project.scripts]
 delta = "delta.delta:main"
 
-[tool.setuptools.packages.find]
-include = ["*"]
+[project.urls]
+Homepage = "https://github.com/oderoi/delta"
+Repository = "https://github.com/oderoi/delta"
+
+[tool.setuptools]
+packages = ["delta"]
+include-package-data = true
 
 [tool.setuptools.package-data]
-"*" = ["*.md", "*.txt", "*.html"]
-
-[tool.setuptools_scm]
-write_to = "delta/_version.py" 
+delta = ["img/*.png"]

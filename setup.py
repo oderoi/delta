@@ -1,59 +1,30 @@
 from setuptools import setup, find_packages
-import os
-
-# Read the README file for long description
-def read_readme():
-    with open("README.md", "r", encoding="utf-8") as fh:
-        return fh.read()
-
-# Read requirements from requirements.txt
-def read_requirements():
-    with open("requirements.txt", "r", encoding="utf-8") as fh:
-        return [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="delta-ai",
+    name="delta",
     version="1.0.0",
-    author="Nile AGI",
-    author_email="support@nileagi.com",
-    description="Access open source LLMs in your local machine with CLI support",
-    long_description=read_readme(),
+    description="A lightweight CLI for running local LLMs using llama.cpp",
+    long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/oderoi/delta",
-    project_urls={
-        "Bug Reports": "https://github.com/oderoi/delta/issues",
-        "Source": "https://github.com/oderoi/delta",
-        "Documentation": "https://nileagi.com/products/delta",
-    },
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Intended Audience :: End Users/Desktop",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: System :: Systems Administration",
-        "Topic :: Utilities",
-    ],
-    python_requires=">=3.8",
+    author="Oderoi",
+    license="MIT",
     packages=find_packages(),
-    install_requires=read_requirements(),
-    entry_points={
-        "console_scripts": [
-            "delta=delta.delta:main",
-        ],
-    },
-    include_package_data=True,
+    python_requires=">=3.8",
+    install_requires=[
+        "requests>=2.31.0",
+        "duckduckgo-search>=3.0.0",
+        "wikipedia>=1.4.0",
+        "PyPDF2>=3.0.0",
+        "click>=8.1.0",
+        "tabulate>=0.9.0",
+        "colorama>=0.4.6",
+        "huggingface_hub>=0.20.0",
+        "tqdm>=4.66.0",
+        "psutil>=5.9.0",
+        "nvidia-ml-py>=12.560.30; sys_platform=='linux' or sys_platform=='win32'",
+    ],
     package_data={
-        "": ["*.md", "*.txt", "*.html"],
+        "delta": ["img/*.png"],
     },
-    keywords="ai, llm, local, inference, ollama, cli, artificial intelligence, machine learning",
-    zip_safe=False,
-) 
+    entry_points={"console_scripts": ["delta = delta.delta:main"]},
+)
