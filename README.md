@@ -20,13 +20,21 @@ A lightweight, privacy-focused CLI for running local LLMs using llama.cpp. Delta
 
 ### Easy Installation (Recommended)
 
+#### For Windows Users:
+```cmd
+# Download and run the Windows installation script
+curl -O https://raw.githubusercontent.com/your-repo/delta/main/install_delta_windows.py
+python install_delta_windows.py
+```
+
+#### For macOS/Linux Users:
 ```bash
 # Download and run the installation script
 curl -O https://raw.githubusercontent.com/your-repo/delta/main/install_delta.py
 python install_delta.py
 ```
 
-This script will:
+These scripts will:
 - ✅ Check Python version compatibility
 - ✅ Remove conflicting packages
 - ✅ Install Delta correctly
@@ -35,6 +43,22 @@ This script will:
 
 ### Manual Installation
 
+#### Windows:
+```cmd
+# Install Delta CLI
+pip install delta
+
+# If you get "delta: command not found", use the Python module method:
+python -m delta.cli setup
+
+# Download a model
+python -m delta.cli pull qwen2:0.5b
+
+# Start chatting
+python -m delta.cli run qwen2:0.5b
+```
+
+#### macOS/Linux:
 ```bash
 # Install Delta CLI
 pip install delta
