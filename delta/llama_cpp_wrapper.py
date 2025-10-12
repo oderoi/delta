@@ -100,8 +100,7 @@ class LlamaCppWrapper:
             cmd.append("-i")
         
         if kwargs.get('chat_format'):
-            cmd.extend(["--chatml"] if kwargs['chat_format'] == 'chatml' 
-                      else [f"--prompt-format={kwargs['chat_format']}"])
+            cmd.extend(["--chat-template", kwargs['chat_format']])
         
         # Generation parameters
         if kwargs.get('temperature'):
@@ -172,6 +171,8 @@ class LlamaCppWrapper:
     
     def generate(self, model_path: str, prompt: str, **kwargs) -> str:
         """Generate text from prompt"""
+        # Ensure non-interactive mode for generation
+        kwargs['interactive'] = False
         cmd = self._build_command(model_path, **kwargs)
         cmd.extend(["--prompt", prompt])
         
@@ -186,13 +187,64 @@ class LlamaCppWrapper:
             if result.returncode != 0:
                 raise RuntimeError(f"llama.cpp failed: {result.stderr}")
             
-            return result.stdout.strip()
+            # Clean up the output to remove conversation formatting
+            output = result.stdout.strip()
+            
+            # Remove conversation markers if present
+            lines = output.split('\n')
+            cleaned_lines = []
+            in_assistant_response = False
+            
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Check for conversation markers
+                if line == "assistant":
+                    in_assistant_response = True
+                    continue
+                elif line == "user":
+                    in_assistant_response = False
+                    continue
+                elif line.startswith("user") or line.startswith("assistant"):
+                    # Handle cases where there might be text after the marker
+                    if line.startswith("assistant"):
+                        in_assistant_response = True
+                        # Extract text after "assistant"
+                        remaining = line[9:].strip()
+                        if remaining:
+                            cleaned_lines.append(remaining)
+                    elif line.startswith("user"):
+                        in_assistant_response = False
+                    continue
+                elif in_assistant_response:
+                    cleaned_lines.append(line)
+            
+            # If we found assistant response, return it
+            if cleaned_lines:
+                return '\n'.join(cleaned_lines)
+            
+            # If no assistant response found, try to extract from the last part
+            # This handles cases where the output format is different
+            if "assistant" in output.lower():
+                # Find the last occurrence of "assistant" and extract everything after it
+                parts = output.split("assistant")
+                if len(parts) > 1:
+                    last_part = parts[-1].strip()
+                    if last_part:
+                        return last_part
+            
+            # Otherwise return the original output
+            return output
             
         except subprocess.TimeoutExpired:
             raise RuntimeError("Generation timed out")
     
     def generate_stream(self, model_path: str, prompt: str, **kwargs) -> Iterator[str]:
         """Stream text generation"""
+        # Ensure non-interactive mode for generation
+        kwargs['interactive'] = False
         cmd = self._build_command(model_path, **kwargs)
         cmd.extend(["--prompt", prompt])
         
@@ -205,9 +257,24 @@ class LlamaCppWrapper:
                 bufsize=1
             )
             
+            in_assistant_response = False
+            
             for line in process.stdout:
-                if line.strip():
-                    yield line.strip()
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Check for conversation markers
+                if line == "assistant":
+                    in_assistant_response = True
+                    continue
+                elif line == "user":
+                    in_assistant_response = False
+                    continue
+                
+                # Only yield lines from assistant response
+                if in_assistant_response:
+                    yield line
             
             process.wait()
             if process.returncode != 0:
@@ -266,7 +333,16 @@ class LlamaCppWrapper:
         if self._server_process:
             return True
         
-        cmd = [self.binary_path, "-m", model_path, "--server", "--host", host, "--port", str(port)]
+        # Use llama-server binary instead of llama-main with --server
+        server_binary = self._get_server_binary()
+        if not server_binary:
+            print("❌ llama-server binary not found!")
+            return False
+        
+        cmd = [server_binary, "-m", model_path, "--host", host, "--port", str(port)]
+        
+        # Add Delta branding
+        cmd.extend(["--alias", "delta"])
         
         # Add server-specific options
         if kwargs.get('threads'):
@@ -286,7 +362,8 @@ class LlamaCppWrapper:
             time.sleep(2)
             
             if self._server_process.poll() is None:
-                print(f"Server started at http://{host}:{port}")
+                print(f"🚀 Delta server started at http://{host}:{port}")
+                print(f"📡 Server alias: delta")
                 return True
             else:
                 stderr = self._server_process.stderr.read().decode()
@@ -302,6 +379,39 @@ class LlamaCppWrapper:
             self._server_process.terminate()
             self._server_process.wait()
             self._server_process = None
+    
+    def _get_server_binary(self) -> str:
+        """Find the llama-server binary"""
+        import platform
+        import os
+        from pathlib import Path
+        
+        # Check if we're using Homebrew installation
+        if platform.system() == "Darwin":
+            homebrew_server = "/opt/homebrew/bin/llama-server"
+            if os.path.exists(homebrew_server):
+                return homebrew_server
+        
+        # Check in the same directory as the main binary
+        if self.binary_path:
+            binary_dir = Path(self.binary_path).parent
+            server_binary = binary_dir / "llama-server"
+            if server_binary.exists():
+                return str(server_binary)
+            
+            # Try with .exe extension on Windows
+            if platform.system() == "Windows":
+                server_binary_exe = binary_dir / "llama-server.exe"
+                if server_binary_exe.exists():
+                    return str(server_binary_exe)
+        
+        # Try to find llama-server in PATH
+        import shutil
+        server_path = shutil.which("llama-server")
+        if server_path:
+            return server_path
+        
+        return None
     
     def get_embeddings(self, model_path: str, text: str, **kwargs) -> List[float]:
         """Get embeddings for text"""

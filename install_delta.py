@@ -36,9 +36,54 @@ def uninstall_wrong_delta():
         pass
     return False
 
+def install_dependencies():
+    """Install required dependencies first"""
+    print("🔧 Installing dependencies...")
+    
+    # Core dependencies that are often missing on phones
+    core_deps = [
+        "click>=8.1.0",
+        "requests>=2.31.0", 
+        "tabulate>=0.9.0",
+        "colorama>=0.4.6",
+        "huggingface_hub>=0.20.0",
+        "tqdm>=4.66.0",
+        "psutil>=5.9.0"
+    ]
+    
+    for dep in core_deps:
+        try:
+            print(f"Installing {dep}...")
+            subprocess.run([sys.executable, '-m', 'pip', 'install', dep], 
+                         check=True, capture_output=True)
+        except subprocess.CalledProcessError:
+            # Try without version constraint
+            dep_name = dep.split('>=')[0]
+            print(f"Trying {dep_name} without version constraint...")
+            subprocess.run([sys.executable, '-m', 'pip', 'install', dep_name], 
+                         check=False, capture_output=True)
+    
+    # Install optional dependencies
+    optional_deps = [
+        "duckduckgo-search>=3.0.0",
+        "wikipedia>=1.4.0", 
+        "PyPDF2>=3.0.0"
+    ]
+    
+    for dep in optional_deps:
+        try:
+            subprocess.run([sys.executable, '-m', 'pip', 'install', dep], 
+                         check=False, capture_output=True)
+        except:
+            pass  # Optional dependencies can fail
+
 def install_delta_local():
     """Install Delta from local source"""
     print("🔧 Installing Delta from local source...")
+    
+    # First install dependencies
+    install_dependencies()
+    
     try:
         # Get the directory where this script is located
         script_dir = Path(__file__).parent
@@ -51,7 +96,15 @@ def install_delta_local():
         return True
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed to install Delta: {e}")
-        return False
+        # Try regular install as fallback
+        try:
+            subprocess.run([sys.executable, '-m', 'pip', 'install', '.'], 
+                          check=True)
+            print("✅ Delta installed successfully (fallback method)")
+            return True
+        except subprocess.CalledProcessError as e2:
+            print(f"❌ Fallback installation also failed: {e2}")
+            return False
 
 def test_delta_command():
     """Test if delta command works"""

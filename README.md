@@ -34,6 +34,18 @@ curl -O https://raw.githubusercontent.com/your-repo/delta/main/install_delta.py
 python install_delta.py
 ```
 
+#### For Mobile Devices (Android/iOS):
+```bash
+# Quick fix for phone installation issues
+curl -O https://raw.githubusercontent.com/your-repo/delta/main/quick_phone_fix.py
+python3 quick_phone_fix.py
+
+# Or use the comprehensive phone installer
+curl -O https://raw.githubusercontent.com/your-repo/delta/main/phone_install.sh
+chmod +x phone_install.sh
+./phone_install.sh
+```
+
 These scripts will:
 - ✅ Check Python version compatibility
 - ✅ Remove conflicting packages

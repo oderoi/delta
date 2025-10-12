@@ -153,7 +153,8 @@ def generate(model, prompt, temperature, top_p, top_k, max_tokens, threads, gpu_
             'max_tokens': max_tokens,
             'threads': threads,
             'gpu_layers': gpu_layers,
-            'gpu_backend': GPUBackend(gpu_backend)
+            'gpu_backend': GPUBackend(gpu_backend),
+            'chat_format': chat_format
         }
         
         if stream:
@@ -183,8 +184,9 @@ def server(model, host, port, threads, gpu_layers):
             'gpu_layers': gpu_layers
         }
         
-        print(f"Starting server with model: {model}")
-        print(f"Server will be available at: http://{host}:{port}")
+        print(f"🚀 Starting Delta server with model: {model}")
+        print(f"📡 Server will be available at: http://{host}:{port}")
+        print(f"🏷️  Server alias: delta")
         print("Press Ctrl+C to stop the server")
         
         success = start_chat_server(model_path, host, port, **kwargs)
