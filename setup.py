@@ -26,5 +26,5 @@ setup(
     package_data={
         "delta": ["img/*.png"],
     },
-    entry_points={"console_scripts": ["delta = delta.delta:main"]},
+    entry_points={"console_scripts": ["delta = delta.cli:cli"]},
 )

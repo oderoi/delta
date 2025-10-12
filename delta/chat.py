@@ -1,114 +1,82 @@
 import subprocess
 import json
-from datetime import datetime
-from pathlib import Path
+import uuid
+import platform
 import sys
 import os
-from .models import HOME_DIR, ensure_llama_binary
+from pathlib import Path
+from datetime import datetime
+from .models import ensure_llama_binary, HOME_DIR
 
-HISTORY_FILE = HOME_DIR / "history.json"
+HISTORY_FILE = HOME_DIR / "chat_history.json"
+
+def save_history(session_id, messages):
+    """Save chat session to history file."""
+    history = load_history()
+    history.append({"id": session_id, "messages": messages, "timestamp": datetime.now().isoformat()})
+    with HISTORY_FILE.open('w') as f:
+        json.dump(history, f, indent=2)
 
 def load_history():
+    """Load chat history from file."""
     if HISTORY_FILE.exists():
-        return json.loads(HISTORY_FILE.read_text())
+        with HISTORY_FILE.open('r') as f:
+            return json.load(f)
     return []
 
-def save_history(history):
-    HISTORY_FILE.write_text(json.dumps(history, indent=2))
-
-def prepend_search(query: str, flag: str = None):
-    if flag == "--wiki":
-        import wikipedia
-        try:
-            page = wikipedia.page(query)
-            return f"Context from Wikipedia: {page.summary[:500]}...\n\nQuestion: {query}\nAnswer:"
-        except:
-            return f"Question: {query}\nAnswer:"
-    elif flag == "--ddg":
-        from duckduckgo_search import DDGS
-        with DDGS() as ddgs:
-            results = [r for r in ddgs.text(query, max_results=1)]
-            if results:
-                return f"Context from DuckDuckGo: {results[0]['body'][:500]}...\n\nQuestion: {query}\nAnswer:"
-            return f"Question: {query}\nAnswer:"
-    elif flag.startswith("--docs"):
-        doc_path = flag.split(' ', 1)[1] if len(flag.split()) > 1 else None
-        if doc_path and doc_path.endswith('.pdf'):
-            import PyPDF2
-            with open(doc_path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
-                text = ''.join(page.extract_text() for page in reader.pages[:5])
-                return f"Document summary: {text[:1000]}...\n\nQuery: Summarize or answer about this doc.\nResponse:"
-        return f"Question: {query}\nAnswer:"
-    return f"Question: {query}\nAnswer:"
-
-def run_chat(model_path: str, flags: list):
-    binary_path = ensure_llama_binary()
-    history = load_history()
-    session_id = datetime.now().isoformat()
-    session = {"id": session_id, "messages": []}
-
-    print("Delta Chat (Ctrl+C to exit, Ctrl+D or 'exit' to quit)")
-    print(">" * 20)
-
-    while True:
-        try:
-            user_input = input("> ").strip()
-            if user_input.lower() in ['exit', 'quit']:
-                break
-            if not user_input:
-                continue
-
-            # Prepend search if flag
-            prompt = prepend_search(user_input, ' '.join(flags) if flags else None)
-            prompt += f"\nUser: {user_input}\nAssistant:"
-
-            # Run llama.cpp binary
-            cmd = [
-                str(binary_path),
-                "-m", str(model_path),
-                "--prompt", prompt,
-                "--ctx-size", "2048",
-                "--threads", str(os.cpu_count()),
-                "--temp", "0.7",
-                "--no-display-prompt",  # Cleaner output
-                "--interactive",
-                "--color",  # For colored output
-            ]
-
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding='utf-8'
-            )
-
-            response = ""
-            print("Assistant: ", end="", flush=True)
-            for line in process.stdout:
-                if line.strip() and not line.startswith("["):  # Skip metadata
-                    print(line, end="", flush=True)
-                    response += line
-            print("\n")
+def run_chat(model_path: str, chat_format: str, flags: list):
+    """Run interactive chat session with the specified model."""
+    binary_name = "bitnet-main" if "bitnet" in model_path else "llama-main"
+    if platform.system() == "Windows":
+        binary_name += ".exe"
+    binary_path = ensure_llama_binary("bitnet" if "bitnet" in model_path else None)
+    
+    # Construct command with simplified arguments for compatibility
+    cmd = [str(binary_path), "-m", str(model_path), "-i"]  # -i for interactive mode
+    
+    # Handle chat format - use compatible arguments
+    if chat_format in ["llama3", "llama2"]:
+        # llama3/llama2 format is the default, no special argument needed
+        pass
+    elif chat_format in ["chatml", "gemma", "phi3", "phi4", "deepseek", "mistral-v1", "mistral-v3"]:
+        # Use supported chat templates
+        cmd.append("--chat-template")
+        cmd.append(chat_format)
+    elif chat_format != "default":
+        # For any other supported format, try it
+        cmd.append("--chat-template")
+        cmd.append(chat_format)
+    
+    cmd.extend([f for f in flags if f])  # Only include non-empty flags
+    
+    session_id = str(uuid.uuid4())
+    messages = []
+    
+    print(f"Starting chat with model: {model_path}")
+    print(f"Command: {' '.join(cmd)}")
+    print("Type your message and press Enter. Type 'exit' to quit.")
+    
+    try:
+        # For interactive mode, we need to pass through stdin/stdout/stderr
+        # This allows the llama.cpp binary to run in true interactive mode
+        process = subprocess.Popen(
+            cmd,
+            stdin=sys.stdin,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            text=True
+        )
+        
+        # Wait for the process to complete
+        process.wait()
+        
+    except KeyboardInterrupt:
+        print("\nChat session ended.")
+        if 'process' in locals():
             process.terminate()
-
-            # Save to history
-            session["messages"].append({
-                "user": user_input,
-                "assistant": response.strip(),
-                "timestamp": datetime.now().isoformat()
-            })
-
-        except KeyboardInterrupt:
-            print("\nExiting...")
-            break
-        except EOFError:
-            break
-        except Exception as e:
-            print(f"Error: {e}")
-            continue
-
-    history.append(session)
-    save_history(history)
-    print("Session saved to history.")
+    except Exception as e:
+        print(f"Error running chat: {e}")
+    
+    # Save session to history
+    if messages:
+        save_history(session_id, messages)
