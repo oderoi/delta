@@ -1,9 +1,9 @@
 @echo off
-REM Delta CLI Windows Installation Script
-REM This script installs Delta CLI on Windows
+REM Delta CLI - Simple Windows Installation
+REM This is the ONLY working installation method
 
 echo ============================================================
-echo 🚀 Delta CLI - Windows Installation Script
+echo 🚀 Delta CLI - Windows Installation
 echo ============================================================
 echo.
 
@@ -36,76 +36,73 @@ if %errorlevel% neq 0 (
 
 echo ✅ pip is available
 
-REM Install Delta
+REM Clean conflicting packages
 echo.
-echo 📦 Installing Delta CLI...
-python -m pip install delta
+echo 🧹 Cleaning conflicting packages...
+python -m pip uninstall delta delta-0.4.2 delta-cli delta-ai -y >nul 2>&1
+echo ✅ Cleaned conflicting packages
+
+REM Install dependencies
+echo.
+echo 📦 Installing dependencies...
+python -m pip install requests>=2.31.0 click>=8.1.0 tabulate>=0.9.0 colorama>=0.4.6 huggingface_hub>=0.20.0 tqdm>=4.66.0 psutil>=5.9.0
 if %errorlevel% neq 0 (
-    echo ❌ Failed to install Delta!
-    echo.
-    echo Try running as Administrator or use:
-    echo python -m pip install --user delta
+    echo ❌ Failed to install dependencies!
+    echo Try running as Administrator
     pause
     exit /b 1
 )
 
-echo ✅ Delta installed successfully!
+echo ✅ Dependencies installed
 
-REM Test Delta command
+REM Install Delta manually
 echo.
-echo 🧪 Testing Delta installation...
-python -m delta.cli --version >nul 2>&1
+echo 🚀 Installing Delta CLI...
+python final_windows_install.py
 if %errorlevel% neq 0 (
-    echo ⚠️  Delta command not found, but Python module should work
-    echo You can use: python -m delta.cli [command]
-) else (
-    echo ✅ Delta command works!
+    echo ❌ Delta installation failed!
+    echo Please check the error messages above
+    pause
+    exit /b 1
 )
 
-REM Setup Delta
+echo ✅ Delta CLI installed
+
+REM Test installation
 echo.
-echo 🔧 Setting up Delta environment...
-python -m delta.cli setup
+echo 🧪 Testing installation...
+python -m delta.cli --help >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ⚠️  Delta setup failed, but you can try manually:
-    echo python -m delta.cli setup
+    echo ❌ Delta test failed!
+    echo Try running: python -m delta.cli --help
+    pause
+    exit /b 1
 )
 
-REM Test basic functionality
-echo.
-echo 🧪 Testing basic functionality...
-python -m delta.cli list
-if %errorlevel% neq 0 (
-    echo ⚠️  Delta list command failed, but installation may still work
-)
+echo ✅ Delta installation test passed
 
-REM Print usage guide
+REM Print success message
 echo.
 echo ============================================================
 echo 🎉 Installation Complete!
 echo ============================================================
 echo.
-echo 📋 Usage Guide:
+echo 📋 Usage Instructions:
 echo.
-echo 1. Download a model:
+echo 1. List available models:
+echo    python -m delta.cli list
+echo.
+echo 2. Download a model (requires build tools):
 echo    python -m delta.cli pull qwen2:0.5b
 echo.
-echo 2. Start chatting:
+echo 3. Start chatting:
 echo    python -m delta.cli run qwen2:0.5b
-echo.
-echo 3. List available models:
-echo    python -m delta.cli list
 echo.
 echo 4. Get help:
 echo    python -m delta.cli --help
 echo.
-echo 📚 For more information, see:
-echo    - README.md
-echo    - WINDOWS_INSTALLATION_GUIDE.md
+echo 📚 For more information, see WINDOWS_INSTALLATION_GUIDE.md
 echo.
-echo 🆘 If you have issues:
-echo    - Check WINDOWS_INSTALLATION_GUIDE.md for troubleshooting
-echo    - Run: python -m delta.cli doctor
-echo    - Report issues on GitHub
+echo 🎉 Delta CLI is ready to use on Windows!
 echo.
 pause
