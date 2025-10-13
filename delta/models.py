@@ -134,7 +134,7 @@ model_map = {
     },
     "qwen2:0.5b": {
         "repo_id": "Qwen/Qwen2-0.5B-Instruct-GGUF",
-        "filename": "Qwen2-0_5B-Instruct-Q4_K_M.gguf",
+        "filename": "qwen2-0_5b-instruct-q4_k_m.gguf",
         "chat_format": "chatml"
     },
     "qwen2.5-coder:0.5b": {
@@ -176,6 +176,15 @@ def init_config():
 def ensure_llama_binary(model_name: str = None):
     """Ensure appropriate binary (llama.cpp or bitnet.cpp) is available, preferring source build."""
     is_bitnet = model_name and model_name == "bitnet"
+    
+    # First, try to find the real binary (llama-cli.exe)
+    if not is_bitnet:
+        real_binary_path = BIN_DIR / "llama-cli.exe"
+        if real_binary_path.exists():
+            print(f"llama.cpp binary found at {real_binary_path}")
+            return real_binary_path
+    
+    # Fallback to the old naming convention
     binary_name = "llama-main" if not is_bitnet else "bitnet-main"
     if platform.system() == "Windows":
         binary_name += ".exe"

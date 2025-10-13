@@ -73,7 +73,7 @@ def list():
     # print(tabulate(table, headers=['Name', 'Size'], tablefmt='grid'))
     
     # NEW SIMPLIFIED IMPLEMENTATION
-    print("\n📋 Installed Models:")
+    print("\nInstalled Models:")
     if models['installed']:
         table = [[
             m['name'],
@@ -84,7 +84,7 @@ def list():
     else:
         print("No models installed.")
 
-    print("\n📋 Available Models (use 'delta pull <name>'):")
+    print("\nAvailable Models (use 'delta pull <name>'):")
     table = [[m['name'], m['size']] for m in models['available']]
     print(tabulate(table, headers=['Model Name', 'Size'], tablefmt='grid'))
 
@@ -153,8 +153,7 @@ def generate(model, prompt, temperature, top_p, top_k, max_tokens, threads, gpu_
             'max_tokens': max_tokens,
             'threads': threads,
             'gpu_layers': gpu_layers,
-            'gpu_backend': GPUBackend(gpu_backend),
-            'chat_format': chat_format
+            'gpu_backend': GPUBackend(gpu_backend)
         }
         
         if stream:
@@ -184,9 +183,8 @@ def server(model, host, port, threads, gpu_layers):
             'gpu_layers': gpu_layers
         }
         
-        print(f"🚀 Starting Delta server with model: {model}")
-        print(f"📡 Server will be available at: http://{host}:{port}")
-        print(f"🏷️  Server alias: delta")
+        print(f"Starting server with model: {model}")
+        print(f"Server will be available at: http://{host}:{port}")
         print("Press Ctrl+C to stop the server")
         
         success = start_chat_server(model_path, host, port, **kwargs)
@@ -300,9 +298,9 @@ def doctor():
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     print(f"Python Version: {python_version}")
     if sys.version_info < (3, 8):
-        print("  ⚠️  Warning: Python 3.8+ recommended")
+        print("  WARNING: Python 3.8+ recommended")
     else:
-        print("  ✅ Python version OK")
+        print("  OK: Python version OK")
     
     # Check system info
     print(f"Platform: {platform.system()} {platform.machine()}")
@@ -312,9 +310,9 @@ def doctor():
     # Check GPU support
     try:
         wrapper = LlamaCppWrapper()
-        print("  ✅ llama.cpp binary found")
+        print("  OK: llama.cpp binary found")
     except FileNotFoundError:
-        print("  ❌ llama.cpp binary not found - run 'delta setup'")
+        print("  ERROR: llama.cpp binary not found - run 'delta setup'")
     
     # Check models
     models = list_models()
@@ -329,15 +327,34 @@ def doctor():
     for package in required_packages:
         try:
             __import__(package)
-            print(f"  ✅ {package}")
+            print(f"  OK: {package}")
         except ImportError:
-            print(f"  ❌ {package} - missing")
+            print(f"  ERROR: {package} - missing")
             missing_packages.append(package)
     
     if missing_packages:
         print(f"\nInstall missing packages: pip install {' '.join(missing_packages)}")
     
     print("\nDiagnosis complete!")
+
+@cli.command()
+@click.argument('model')
+@click.option('--host', default='localhost', help='Host to bind to')
+@click.option('--port', default=8080, type=int, help='Port to bind to')
+@click.option('--threads', type=int, help='Number of threads to use')
+def server(model, host, port, threads):
+    """Start a chat server with the specified model."""
+    try:
+        model_path, chat_format = pull_model(model)
+        print(f"Starting server with model: {model}")
+        print(f"Server will be available at: http://{host}:{port}")
+        print("Press Ctrl+C to stop the server")
+        
+        # Start the server
+        start_chat_server(model_path, host, port, threads=threads)
+        
+    except Exception as e:
+        print(f"Failed to start server: {e}")
 
 def main():
     """Main entry point for the delta CLI"""

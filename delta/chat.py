@@ -57,23 +57,23 @@ def run_chat(model_path: str, chat_format: str, flags: list):
     print("Type your message and press Enter. Type 'exit' to quit.")
     
     try:
-        # For interactive mode, we need to pass through stdin/stdout/stderr
-        # This allows the llama.cpp binary to run in true interactive mode
-        process = subprocess.Popen(
+        # For interactive mode, let llama.cpp handle the interaction directly
+        # This works better than trying to manage pipes
+        print("Starting interactive chat session...")
+        print("Type 'exit' to quit the chat session.")
+        print()
+        
+        # Start the llama.cpp process in interactive mode
+        process = subprocess.run(
             cmd,
-            stdin=sys.stdin,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
+            stdin=None,  # Use system stdin
+            stdout=None,  # Use system stdout  
+            stderr=None,  # Use system stderr
             text=True
         )
         
-        # Wait for the process to complete
-        process.wait()
-        
     except KeyboardInterrupt:
         print("\nChat session ended.")
-        if 'process' in locals():
-            process.terminate()
     except Exception as e:
         print(f"Error running chat: {e}")
     

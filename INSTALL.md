@@ -31,32 +31,7 @@ delta run qwen2:0.5b
 
 ### Windows
 
-#### Option 1: Using pip (Recommended)
-```cmd
-# Install Python 3.8+ from python.org
-pip install delta
-delta setup
-```
-
-#### Option 2: Using winget
-```cmd
-# Install Python
-winget install Python.Python.3.11
-
-# Install Delta
-pip install delta
-delta setup
-```
-
-#### Option 3: Using Chocolatey
-```cmd
-# Install Python
-choco install python
-
-# Install Delta
-pip install delta
-delta setup
-```
+See [WINDOWS_INSTALL.md](WINDOWS_INSTALL.md) for complete Windows installation guide.
 
 ### macOS
 
@@ -303,9 +278,7 @@ export PATH="$HOME/.delta/bin:$PATH"
 ### Platform-Specific Issues
 
 #### Windows
-- **Antivirus blocking**: Add `~/.delta` to exclusions
-- **PATH not updated**: Restart terminal or use `setx`
-- **Build tools missing**: Install Visual Studio Build Tools
+See [WINDOWS_INSTALL.md](WINDOWS_INSTALL.md) for Windows-specific troubleshooting.
 
 #### macOS
 - **Xcode Command Line Tools**: Run `xcode-select --install`

@@ -20,128 +20,73 @@ A lightweight, privacy-focused CLI for running local LLMs using llama.cpp. Delta
 
 ### Easy Installation (Recommended)
 
-#### For Windows Users:
-```cmd
-# Download and run the Windows installation script
-curl -O https://raw.githubusercontent.com/your-repo/delta/main/install_delta_windows.py
-python install_delta_windows.py
-```
-
-#### For macOS/Linux Users:
-```bash
-# Download and run the installation script
-curl -O https://raw.githubusercontent.com/your-repo/delta/main/install_delta.py
-python install_delta.py
-```
-
-#### For Mobile Devices (Android/iOS):
-```bash
-# Quick fix for phone installation issues
-curl -O https://raw.githubusercontent.com/your-repo/delta/main/quick_phone_fix.py
-python3 quick_phone_fix.py
-
-# Or use the comprehensive phone installer
-curl -O https://raw.githubusercontent.com/your-repo/delta/main/phone_install.sh
-chmod +x phone_install.sh
-./phone_install.sh
-```
-
-These scripts will:
-- ✅ Check Python version compatibility
-- ✅ Remove conflicting packages
-- ✅ Install Delta correctly
-- ✅ Test both command and module methods
-- ✅ Setup the environment automatically
-
-### Manual Installation
-
 #### Windows:
-```cmd
-# Install Delta CLI
-pip install delta
-
-# If you get "delta: command not found", use the Python module method:
-python -m delta.cli setup
-
-# Download a model
-python -m delta.cli pull qwen2:0.5b
-
-# Start chatting
-python -m delta.cli run qwen2:0.5b
+```powershell
+# See WINDOWS_INSTALL.md for complete Windows installation guide
+# Quick start: .\install_delta_windows.bat
 ```
 
 #### macOS/Linux:
 ```bash
+# Install pre-built llama.cpp
+brew install llama.cpp
+
 # Install Delta CLI
-pip install delta
-
-# If you get "delta: command not found", use the Python module method:
-python -m delta.cli setup
-
-# Download a model
-python -m delta.cli pull qwen2:0.5b
-
-# Start chatting
-python -m delta.cli run qwen2:0.5b
+python -m pip install -e .
 ```
 
-### Fix "delta: command not found" Error
-
-If you get `delta: command not found` after installation, run:
+#### iOS/Android:
 ```bash
-python universal_delta_fix.py
+# Download pre-built binaries manually
+# See platform-specific guides for details
 ```
-
-This will automatically fix the PATH issue and make the `delta` command available.
 
 ### Manual Installation
 
-#### Desktop (Windows, macOS, Linux)
-
-1. **Install Python 3.8+ and pip**
-2. **Install Delta**:
-   ```bash
-   pip install delta
-   ```
-3. **Setup environment**:
-   ```bash
-   delta setup
-   ```
-4. **Add to PATH** (if needed):
-   - **Linux/macOS**: Add to `.bashrc` or `.zshrc`:
-     ```bash
-     export PATH="$PATH:$HOME/.delta/bin"
-     ```
-   - **Windows**: Add to System PATH or run:
-     ```cmd
-     setx PATH "%PATH%;%USERPROFILE%\.delta\bin"
-     ```
-
-#### Mobile Devices
-
-##### Android (Termux)
-
-```bash
-# Install Termux from F-Droid (not Play Store)
-pkg install python git make clang
-pip install delta
-delta setup
+#### Windows:
+```powershell
+# See WINDOWS_INSTALL.md for complete Windows installation guide
+# Quick start: .\install_delta_windows.bat
 ```
 
-##### iOS (a-Shell/iSH)
-
+#### macOS:
 ```bash
-# Install a-Shell or iSH from App Store
-# For iSH:
-apk add python3 git make clang
-pip3 install delta
-delta setup
+# Install pre-built llama.cpp
+brew install llama.cpp
 
-# For a-Shell:
-pkg install python git make clang
-pip install delta
-delta setup
+# Install Delta CLI
+python -m pip install -e .
+
+# Test installation
+python -m delta.cli list
+python -m delta.cli pull qwen2:0.5b
+python -m delta.cli run qwen2:0.5b
 ```
+
+#### Linux:
+```bash
+# Install pre-built llama.cpp
+brew install llama.cpp
+
+# Install Delta CLI
+python -m pip install -e .
+
+# Test installation
+python -m delta.cli list
+python -m delta.cli pull qwen2:0.5b
+python -m delta.cli run qwen2:0.5b
+```
+
+
+### Platform-Specific Guides
+
+- **[Windows Installation](WINDOWS_INSTALL.md)** - Complete Windows setup
+- **[macOS Installation](MACOS_INSTALL.md)** - Complete macOS setup
+- **[Linux Installation](LINUX_INSTALL.md)** - Complete Linux setup
+- **[iOS Installation](IOS_INSTALL.md)** - Complete iOS setup
+- **[Android Installation](ANDROID_INSTALL.md)** - Complete Android setup
+- **[Universal Guide](UNIVERSAL_INSTALLATION_GUIDE.md)** - Cross-platform installation
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
 
 ## 📖 Usage
 
@@ -262,21 +207,27 @@ Delta supports all GGUF format models. Popular options:
 2. **Permission denied**: Ensure binary is executable (`chmod +x ~/.delta/bin/llama-main`)
 3. **Out of memory**: Use smaller models or reduce context size
 4. **GPU not detected**: Check GPU drivers and run `delta doctor`
-5. **Installation fails**: Run `python test_delta_installation.py` to diagnose issues
+5. **Installation fails**: See [Troubleshooting Guide](TROUBLESHOOTING.md) for solutions
 
 ### Installation Validation
 
 Test your installation with:
 ```bash
-python test_delta_installation.py
+# Test basic functionality
+python -m delta.cli --help
+
+# Test model listing
+python -m delta.cli list
+
+# Test model download
+python -m delta.cli pull qwen2:0.5b
 ```
 
-This will check:
-- ✅ Delta module import
-- ✅ Platform detection
+This will verify:
+- ✅ Delta CLI functionality
 - ✅ Model management
 - ✅ llama.cpp binary
-- ✅ Delta CLI functionality
+- ✅ Platform compatibility
 
 ### System Requirements
 
