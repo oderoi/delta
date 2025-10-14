@@ -87,21 +87,25 @@ class LlamaCppWrapper:
         ]
         
         for path in possible_paths:
-            if path and Path(path).exists():
-                # Check if it's a real binary (not a wrapper script)
+            if not path:
+                continue
+            p = Path(path)
+            if p.exists():
+                # On Windows, optionally verify PE header; on Unix, just ensure executable
                 try:
-                    with open(path, 'rb') as f:
-                        # Read first few bytes to check if it's a real executable
-                        header = f.read(4)
-                        # Real PE executables start with 'MZ'
-                        if header.startswith(b'MZ'):
-                            return str(path)
-                        # Skip if it's a text file (wrapper script)
-                        elif header.startswith(b'@echo') or header.startswith(b'REM'):
-                            continue
-                except:
-                    # If we can't read it, assume it's a real binary
-                    return str(path)
+                    if os.name == 'nt':
+                        with open(p, 'rb') as f:
+                            if f.read(2) == b'MZ':
+                                return str(p)
+                        # If not PE, still return if executable (could be shim)
+                        if os.access(p, os.X_OK):
+                            return str(p)
+                    else:
+                        if os.access(p, os.X_OK):
+                            return str(p)
+                except Exception:
+                    # If any check fails but file exists, assume it's runnable
+                    return str(p)
         
         raise FileNotFoundError("llama.cpp binary not found")
     
@@ -190,17 +194,52 @@ class LlamaCppWrapper:
         cmd.extend(["--prompt", prompt])
         
         try:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=kwargs.get('timeout', 300)
+                bufsize=1
             )
-            
-            if result.returncode != 0:
-                raise RuntimeError(f"llama.cpp failed: {result.stderr}")
-            
-            return result.stdout.strip()
+            # Monitor stdin to allow early termination via 'exit'/'quit'/'q'
+            allow_stdin_exit = kwargs.get('allow_stdin_exit', True)
+            stop_event = threading.Event()
+            stdin_thread = None
+            if allow_stdin_exit:
+                def _monitor_stdin():
+                    try:
+                        while not stop_event.is_set():
+                            line = sys.stdin.readline()
+                            if not line:
+                                break
+                            if line.strip().lower() in {"exit", "quit", "q"}:
+                                try:
+                                    process.terminate()
+                                except Exception:
+                                    pass
+                                stop_event.set()
+                                break
+                    except Exception:
+                        pass
+                stdin_thread = threading.Thread(target=_monitor_stdin, daemon=True)
+                stdin_thread.start()
+            output_lines = []
+            for line in process.stdout:
+                if line:
+                    output_lines.append(line)
+                    if kwargs.get('stream'):
+                        print(line, end='', flush=True)
+            process.wait(timeout=kwargs.get('timeout', 300))
+            stop_event.set()
+            if stdin_thread:
+                try:
+                    stdin_thread.join(timeout=0.2)
+                except Exception:
+                    pass
+            if process.returncode != 0:
+                stderr = process.stderr.read()
+                raise RuntimeError(f"llama.cpp failed: {stderr}")
+            return ''.join(output_lines).strip()
             
         except subprocess.TimeoutExpired:
             raise RuntimeError("Generation timed out")
@@ -280,11 +319,35 @@ class LlamaCppWrapper:
         if self._server_process:
             return True
         
-        # Use the dedicated server binary
-        server_binary = str(Path(self.binary_path).parent / "llama-server.exe")
-        if not Path(server_binary).exists():
-            # Fallback to main binary if server binary not found
-            server_binary = self.binary_path
+        # Use the dedicated server binary (platform-aware)
+        server_candidates = []
+        if os.name == 'nt':
+            server_candidates.extend([
+                Path(self.binary_path).parent / "llama-server.exe",
+                Path(self.binary_path).parent / "server.exe",
+                shutil.which("llama-server"),
+                shutil.which("server"),
+            ])
+        else:
+            server_candidates.extend([
+                Path(self.binary_path).parent / "llama-server",
+                Path(self.binary_path).parent / "server",
+                shutil.which("llama-server"),
+                shutil.which("server"),
+            ])
+
+        server_binary = None
+        for cand in server_candidates:
+            if not cand:
+                continue
+            p = Path(cand)
+            if p.exists() and os.access(p, os.X_OK):
+                server_binary = str(p)
+                break
+
+        if not server_binary:
+            print("llama-server not found. Please run 'delta setup' or install via Homebrew: 'brew install llama.cpp'.")
+            return False
         
         cmd = [server_binary, "-m", model_path, "--host", host, "--port", str(port)]
         
@@ -364,36 +427,76 @@ class LlamaCppWrapper:
     
     def get_model_info(self, model_path: str) -> ModelInfo:
         """Get detailed information about a model"""
-        cmd = [self.binary_path, "-m", model_path, "--verbose"]
+        # Use a simpler command that doesn't load the full model
+        cmd = [self.binary_path, "-m", model_path, "--help"]
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            
+            # If help doesn't work, try with --verbose but with shorter timeout
+            if result.returncode != 0:
+                cmd = [self.binary_path, "-m", model_path, "--verbose"]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
             
             if result.returncode != 0:
                 raise RuntimeError(f"Failed to get model info: {result.stderr}")
             
-            # Parse model information from verbose output
+            # Get basic file information
+            try:
+                file_size = Path(model_path).stat().st_size
+            except OSError:
+                file_size = 0
+            
+            # Parse model information from output
             info = {
                 'name': Path(model_path).stem,
                 'path': model_path,
-                'size': Path(model_path).stat().st_size,
+                'size': file_size,
                 'format': 'GGUF',
                 'quantization': 'Unknown',
                 'parameters': 'Unknown',
                 'family': 'Unknown',
-                'chat_format': 'chatml'
+                'chat_format': 'chatml',
+                'context_size': 2048
             }
             
             # Extract information from output
             lines = result.stdout.split('\n')
             for line in lines:
-                if 'quantization' in line.lower():
-                    info['quantization'] = line.split(':')[-1].strip()
-                elif 'parameters' in line.lower():
-                    info['parameters'] = line.split(':')[-1].strip()
+                line_lower = line.lower()
+                if 'quantization' in line_lower or 'quantize' in line_lower:
+                    if ':' in line:
+                        info['quantization'] = line.split(':')[-1].strip()
+                elif 'parameters' in line_lower or 'params' in line_lower:
+                    if ':' in line:
+                        info['parameters'] = line.split(':')[-1].strip()
+                elif 'context' in line_lower and 'length' in line_lower:
+                    if ':' in line:
+                        try:
+                            ctx_size = int(line.split(':')[-1].strip())
+                            info['context_size'] = ctx_size
+                        except ValueError:
+                            pass
+                elif 'architecture' in line_lower:
+                    if ':' in line:
+                        arch = line.split(':')[-1].strip()
+                        if 'llama' in arch.lower():
+                            info['family'] = 'Llama'
+                        elif 'qwen' in arch.lower():
+                            info['family'] = 'Qwen'
+                        elif 'gemma' in arch.lower():
+                            info['family'] = 'Gemma'
+                        elif 'phi' in arch.lower():
+                            info['family'] = 'Phi'
+                        elif 'mistral' in arch.lower():
+                            info['family'] = 'Mistral'
+                        else:
+                            info['family'] = arch
             
             return ModelInfo(**info)
             
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Model info request timed out")
         except Exception as e:
             raise RuntimeError(f"Failed to get model info: {e}")
     

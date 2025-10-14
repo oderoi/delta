@@ -1,5 +1,7 @@
 import click
 import sys
+import os
+import threading
 import time
 from pathlib import Path
 from .models import pull_model, list_models, remove_model, DEFAULT_MODEL
@@ -34,7 +36,7 @@ def run(model, wiki, ddg, docs):
     """Run chat with MODEL (downloads if needed)."""
     if not model:
         model = DEFAULT_MODEL
-    model_path, chat_format = pull_model(model)
+    model_path, chat_format = pull_model(model, quiet=True)
     flags = [arg for arg in [wiki and '--wiki', ddg and '--ddg', docs and f"--docs {docs}"] if arg]
     run_chat(model_path, chat_format, flags)
 
@@ -104,23 +106,76 @@ def check():
     print(f"Recommended: {rec}")
 
 @cli.command()
-def hist():
+@click.option('--limit', '-l', type=int, default=5, help='Number of recent sessions to show')
+@click.option('--session', '-s', help='Show specific session by ID')
+def hist(limit, session):
     """View chat history."""
     from .chat import load_history
     history = load_history()
-    for sess in history[-5:]:
-        print(f"Session {sess['id'][:10]}:")
-        for msg in sess['messages'][-3:]:
-            print(f"User: {msg['user'][:50]}...\nAssist: {msg['assistant'][:50]}...\n")
+    
+    if not history:
+        print("No chat history found.")
+        return
+    
+    if session:
+        # Show specific session
+        found = False
+        for sess in history:
+            if sess['id'].startswith(session):
+                print(f"Session {sess['id'][:10]} ({sess['timestamp']}):")
+                print("=" * 50)
+                for msg in sess['messages']:
+                    if msg.get('user'):
+                        print(f"User: {msg['user']}")
+                    if msg.get('assistant'):
+                        print(f"Assistant: {msg['assistant']}")
+                    print("-" * 30)
+                found = True
+                break
+        if not found:
+            print(f"Session {session} not found.")
+    else:
+        # Show recent sessions
+        print(f"Recent {min(limit, len(history))} chat sessions:")
+        print("=" * 50)
+        for sess in history[-limit:]:
+            print(f"Session {sess['id'][:10]} ({sess['timestamp']}):")
+            if not sess['messages']:
+                print("  (No conversation recorded)")
+            else:
+                for msg in sess['messages'][-3:]:  # Show last 3 messages per session
+                    if msg.get('user'):
+                        print(f"  User: {msg['user']}")
+                    if msg.get('assistant'):
+                        print(f"  Assistant: {msg['assistant']}")
+                    print("  " + "-" * 40)
+            print("-" * 50)
 
 @cli.command()
 @click.option('--clear', is_flag=True, help='Clear history')
-def hist_clear(clear):
+@click.option('--session', '-s', help='Clear specific session by ID')
+def hist_clear(clear, session):
     """Clear chat history."""
-    if clear:
-        from .chat import HISTORY_FILE
+    from .chat import load_history, save_history, HISTORY_FILE
+    import json
+    
+    if clear and session:
+        # Clear specific session
+        history = load_history()
+        original_count = len(history)
+        history = [sess for sess in history if not sess['id'].startswith(session)]
+        if len(history) < original_count:
+            with HISTORY_FILE.open('w') as f:
+                json.dump(history, f, indent=2)
+            print(f"Session {session} cleared.")
+        else:
+            print(f"Session {session} not found.")
+    elif clear:
+        # Clear all history
         HISTORY_FILE.unlink(missing_ok=True)
-        print("History cleared.")
+        print("All chat history cleared.")
+    else:
+        print("Use --clear to clear all history or --clear --session <id> to clear specific session.")
 
 @cli.command()
 def version():
@@ -139,7 +194,7 @@ def version():
 @click.option('--threads', type=int, help='Number of threads to use')
 @click.option('--gpu-layers', type=int, default=0, help='Number of layers to offload to GPU')
 @click.option('--gpu-backend', type=click.Choice(['cpu', 'cuda', 'rocm', 'metal', 'opencl']), default='cpu', help='GPU backend to use')
-@click.option('--stream', is_flag=True, help='Stream output as it generates')
+@click.option('--stream', is_flag=True, default=True, help='Stream output as it generates')
 def generate(model, prompt, temperature, top_p, top_k, max_tokens, threads, gpu_layers, gpu_backend, stream):
     """Generate text from a prompt using the specified model."""
     try:
@@ -153,13 +208,32 @@ def generate(model, prompt, temperature, top_p, top_k, max_tokens, threads, gpu_
             'max_tokens': max_tokens,
             'threads': threads,
             'gpu_layers': gpu_layers,
-            'gpu_backend': GPUBackend(gpu_backend)
+            'gpu_backend': GPUBackend(gpu_backend),
+            'stream': stream,
+            'allow_stdin_exit': True
         }
         
         if stream:
-            for chunk in wrapper.generate_stream(model_path, prompt, **kwargs):
-                print(chunk, end='', flush=True)
-            print()  # New line after streaming
+            # Start stdin watcher to allow 'exit'/'quit'/'q' to terminate immediately
+            stop_event = threading.Event()
+            def _stdin_watch():
+                try:
+                    while not stop_event.is_set():
+                        line = sys.stdin.readline()
+                        if not line:
+                            break
+                        if line.strip().lower() in {"exit", "quit", "q"}:
+                            os._exit(0)
+                except Exception:
+                    pass
+            watcher = threading.Thread(target=_stdin_watch, daemon=True)
+            watcher.start()
+            try:
+                for chunk in wrapper.generate_stream(model_path, prompt, **kwargs):
+                    print(chunk, end='', flush=True)
+                print()
+            finally:
+                stop_event.set()
         else:
             result = wrapper.generate(model_path, prompt, **kwargs)
             print(result)
@@ -245,22 +319,47 @@ def benchmark(model, threads):
 def info(model, threads):
     """Get detailed information about a model."""
     try:
-        model_path, chat_format = pull_model(model)
-        wrapper = LlamaCppWrapper()
+        # Check if model is installed first
+        installed_models = list_models()['installed']
+        model_found = False
+        for installed_model in installed_models:
+            if installed_model['name'] == model:
+                model_found = True
+                break
         
-        kwargs = {'threads': threads} if threads else {}
-        info = wrapper.get_model_info(model_path)
+        if not model_found:
+            print(f"Model {model} not found.")
+            print("Available models:")
+            for installed_model in installed_models:
+                print(f"  - {installed_model['name']}")
+            return
         
-        print(f"Model Information for {model}:")
-        print(f"  Name: {info.name}")
-        print(f"  Path: {info.path}")
-        print(f"  Size: {info.size / (1024**3):.2f} GB")
-        print(f"  Format: {info.format}")
-        print(f"  Quantization: {info.quantization}")
-        print(f"  Parameters: {info.parameters}")
-        print(f"  Family: {info.family}")
-        print(f"  Chat Format: {info.chat_format}")
-        print(f"  Context Size: {info.context_size}")
+        # Try to get model info without loading the full model
+        try:
+            model_path, chat_format = pull_model(model)
+            wrapper = LlamaCppWrapper()
+            
+            # Get basic file info without running llama.cpp
+            try:
+                file_size = Path(model_path).stat().st_size
+                file_name = Path(model_path).stem
+            except OSError:
+                file_size = 0
+                file_name = model
+            
+            print(f"Model Information for {model}:")
+            print(f"  Name: {file_name}")
+            print(f"  Path: {model_path}")
+            print(f"  Size: {file_size / (1024**3):.2f} GB")
+            print(f"  Format: GGUF")
+            print(f"  Quantization: Unknown")
+            print(f"  Parameters: Unknown")
+            print(f"  Family: Unknown")
+            print(f"  Chat Format: {chat_format}")
+            print(f"  Context Size: 2048")
+            
+        except Exception as e:
+            print(f"Error getting model info: {e}")
         
     except Exception as e:
         print(f"Error: {e}")
@@ -358,7 +457,16 @@ def server(model, host, port, threads):
 
 def main():
     """Main entry point for the delta CLI"""
-    cli()
+    try:
+        # Use standalone_mode=False so exceptions propagate and show useful errors
+        cli(standalone_mode=False)
+    except SystemExit as e:
+        # Preserve Click's exit codes
+        raise
+    except Exception as e:
+        # Fallback diagnostic
+        print(f"Error: {e}")
+        raise
 
 if __name__ == '__main__':
     cli()

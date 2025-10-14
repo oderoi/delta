@@ -24,7 +24,7 @@ def load_history():
             return json.load(f)
     return []
 
-def run_chat(model_path: str, chat_format: str, flags: list):
+def run_chat(model_path: str, chat_format: str = "default", flags: list | None = None):
     """Run interactive chat session with the specified model."""
     binary_name = "bitnet-main" if "bitnet" in model_path else "llama-main"
     if platform.system() == "Windows":
@@ -33,6 +33,8 @@ def run_chat(model_path: str, chat_format: str, flags: list):
     
     # Construct command with simplified arguments for compatibility
     cmd = [str(binary_path), "-m", str(model_path), "-i"]  # -i for interactive mode
+    # Suppress startup output but keep it simple
+    cmd.extend(["--no-display-prompt", "--no-warmup"])
     
     # Handle chat format - use compatible arguments
     if chat_format in ["llama3", "llama2"]:
@@ -47,36 +49,78 @@ def run_chat(model_path: str, chat_format: str, flags: list):
         cmd.append("--chat-template")
         cmd.append(chat_format)
     
+    if flags is None:
+        flags = []
     cmd.extend([f for f in flags if f])  # Only include non-empty flags
     
     session_id = str(uuid.uuid4())
     messages = []
+    current_conversation = {"user": "", "assistant": ""}
     
-    print(f"Starting chat with model: {model_path}")
-    print(f"Command: {' '.join(cmd)}")
-    print("Type your message and press Enter. Type 'exit' to quit.")
+    # No preamble; start directly at prompt
     
     try:
-        # For interactive mode, let llama.cpp handle the interaction directly
-        # This works better than trying to manage pipes
-        print("Starting interactive chat session...")
-        print("Type 'exit' to quit the chat session.")
-        print()
-        
-        # Start the llama.cpp process in interactive mode
-        process = subprocess.run(
+        # Manage stdin ourselves so we can intercept 'exit' and terminate
+        print("> ", end="", flush=True)
+
+        # Use a simpler approach - let llama.cpp handle everything
+        process = subprocess.Popen(
             cmd,
-            stdin=None,  # Use system stdin
-            stdout=None,  # Use system stdout  
-            stderr=None,  # Use system stderr
-            text=True
+            stdin=subprocess.PIPE,  # We control stdin to detect 'exit'
+            stdout=None,            # Let stdout go to terminal for responses
+            stderr=None,            # Let stderr go to terminal (startup noise will show)
+            text=True,
+            bufsize=1
         )
-        
+
+        # Simple REPL loop: forward user input to llama.cpp, intercept exit
+        while True:
+            try:
+                user_input = input().strip()
+            except EOFError:
+                # End of input (e.g., Ctrl+D) -> terminate
+                break
+
+            if user_input.lower() in {"exit", "quit", "q"}:
+                print("Exiting chat...")
+                break
+
+            if process.poll() is not None:
+                # Process ended unexpectedly
+                break
+
+            if process.stdin is not None:
+                # Store user input for history
+                current_conversation["user"] = user_input
+                process.stdin.write(user_input + "\n")
+                process.stdin.flush()
+                print("> ", end="", flush=True)
+
+        # Gracefully terminate the subprocess
+        if process.poll() is None:
+            try:
+                process.terminate()
+            except Exception:
+                pass
+            try:
+                process.wait(timeout=5)
+            except Exception:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+
     except KeyboardInterrupt:
         print("\nChat session ended.")
+        try:
+            if 'process' in locals() and process and process.poll() is None:
+                process.terminate()
+        except Exception:
+            pass
     except Exception as e:
         print(f"Error running chat: {e}")
-    
-    # Save session to history
-    if messages:
-        save_history(session_id, messages)
+
+    # Save session to history (even if empty, so exits are logged)
+    if current_conversation["user"]:
+        messages.append(current_conversation)
+    save_history(session_id, messages)

@@ -173,7 +173,7 @@ def init_config():
     if not CONFIG_FILE.exists():
         CONFIG_FILE.write_text(json.dumps({"default_model": DEFAULT_MODEL}))
 
-def ensure_llama_binary(model_name: str = None):
+def ensure_llama_binary(model_name: str = None, quiet: bool = False):
     """Ensure appropriate binary (llama.cpp or bitnet.cpp) is available, preferring source build."""
     is_bitnet = model_name and model_name == "bitnet"
     
@@ -181,7 +181,8 @@ def ensure_llama_binary(model_name: str = None):
     if not is_bitnet:
         real_binary_path = BIN_DIR / "llama-cli.exe"
         if real_binary_path.exists():
-            print(f"llama.cpp binary found at {real_binary_path}")
+            if not quiet:
+                pass  # print(f"llama.cpp binary found at {real_binary_path}")  # Suppressed for clean output
             return real_binary_path
     
     # Fallback to the old naming convention
@@ -192,23 +193,28 @@ def ensure_llama_binary(model_name: str = None):
     
     # Check if source-built binary exists
     if binary_path.exists():
-        print(f"{'bitnet.cpp' if is_bitnet else 'llama.cpp'} binary found at {binary_path}")
+        if not quiet:
+            pass  # print(f"{'bitnet.cpp' if is_bitnet else 'llama.cpp'} binary found at {binary_path}")  # Suppressed for clean output
         return binary_path
 
     # Try Homebrew for llama.cpp (not bitnet)
     if shutil.which("brew") and not is_bitnet:
         try:
             subprocess.run(["brew", "list", "llama.cpp"], check=True, capture_output=True, text=True)
-            print("llama.cpp is already installed via brew")
+            if not quiet:
+                print("llama.cpp is already installed via brew")
             brew_bin = shutil.which("llama-cli")
             if brew_bin:
-                print(f"Using brew-installed llama-cli at {brew_bin}")
+                if not quiet:
+                    print(f"Using brew-installed llama-cli at {brew_bin}")
                 return Path(brew_bin)
         except subprocess.CalledProcessError:
-            print("llama.cpp not installed via brew. Falling back to build from source.")
+            if not quiet:
+                print("llama.cpp not installed via brew. Falling back to build from source.")
 
     # Build from source
-    print(f"Building {'bitnet.cpp' if is_bitnet else 'llama.cpp'} binary from source for {platform.system()}...")
+    if not quiet:
+        print(f"Building {'bitnet.cpp' if is_bitnet else 'llama.cpp'} binary from source for {platform.system()}...")
     build_dir = HOME_DIR / ("bitnet.cpp" if is_bitnet else "llama.cpp")
     repo_url = "https://github.com/microsoft/bitnet.cpp.git" if is_bitnet else "https://github.com/ggerganov/llama.cpp.git"
 
@@ -263,7 +269,8 @@ def ensure_llama_binary(model_name: str = None):
     try:
         subprocess.run(["git", "config", "--global", "http.version", "HTTP/1.1"], check=True, capture_output=True, text=True)
         subprocess.run(["git", "config", "--global", "http.postBuffer", "524288000"], check=True, capture_output=True, text=True)
-        print("Configured Git to use HTTP/1.1 and increased postBuffer to 500MB")
+        if not quiet:
+            print("Configured Git to use HTTP/1.1 and increased postBuffer to 500MB")
     except subprocess.CalledProcessError as e:
         print(f"Failed to configure Git: {e.stderr}")
         raise RuntimeError("Failed to configure Git for cloning")
@@ -274,28 +281,32 @@ def ensure_llama_binary(model_name: str = None):
         if build_dir.exists():
             shutil.rmtree(build_dir)
         try:
-            print(f"Attempt {attempt}/{max_retries}: Cloning {'bitnet.cpp' if is_bitnet else 'llama.cpp'} with --depth 1...")
+            if not quiet:
+                print(f"Attempt {attempt}/{max_retries}: Cloning {'bitnet.cpp' if is_bitnet else 'llama.cpp'} with --depth 1...")
             subprocess.run(
                 ["git", "clone", "--depth", "1", repo_url, str(build_dir)],
                 check=True,
                 capture_output=True,
                 text=True
             )
-            print(f"Cloned {'bitnet.cpp' if is_bitnet else 'llama.cpp'} to {build_dir}")
+            if not quiet:
+                print(f"Cloned {'bitnet.cpp' if is_bitnet else 'llama.cpp'} to {build_dir}")
             break
         except subprocess.CalledProcessError as e:
             print(f"Attempt {attempt}/{max_retries} failed: {e.stderr}")
             if attempt < max_retries:
-                print(f"Retrying in 5 seconds...")
+                if not quiet:
+                    print(f"Retrying in 5 seconds...")
                 time.sleep(5)
             else:
-                print(f"Failed to clone {'bitnet.cpp' if is_bitnet else 'llama.cpp'} after {max_retries} attempts")
-                print("Possible solutions:")
-                print("1. Check your internet connection")
-                print("2. Try cloning manually: git clone --depth 1 https://github.com/ggerganov/llama.cpp.git ~/.delta/llama.cpp")
-                print("3. Ensure Git is up-to-date: brew upgrade git")
-                print("4. Clear Git cache: git cache clear")
-                print("5. Try a different network or VPN")
+                if not quiet:
+                    print(f"Failed to clone {'bitnet.cpp' if is_bitnet else 'llama.cpp'} after {max_retries} attempts")
+                    print("Possible solutions:")
+                    print("1. Check your internet connection")
+                    print("2. Try cloning manually: git clone --depth 1 https://github.com/ggerganov/llama.cpp.git ~/.delta/llama.cpp")
+                    print("3. Ensure Git is up-to-date: brew upgrade git")
+                    print("4. Clear Git cache: git cache clear")
+                    print("5. Try a different network or VPN")
                 raise RuntimeError(f"Failed to clone {'bitnet.cpp' if is_bitnet else 'llama.cpp'} repository")
 
     # Build with Metal support (first attempt)
@@ -316,13 +327,15 @@ def ensure_llama_binary(model_name: str = None):
                 "-DCMAKE_EXE_LINKER_FLAGS=-framework Metal -framework Foundation"
             ])
         result = subprocess.run(cmake_args, check=True, capture_output=True, text=True)
-        print(f"CMake configuration output:\n{result.stdout}")
-        if result.stderr:
-            print(f"CMake warnings:\n{result.stderr}")
+        if not quiet:
+            print(f"CMake configuration output:\n{result.stdout}")
+            if result.stderr:
+                print(f"CMake warnings:\n{result.stderr}")
         result = subprocess.run(["make"], check=True, capture_output=True, text=True)
-        print(f"Make output:\n{result.stdout}")
-        if result.stderr:
-            print(f"Make warnings:\n{result.stderr}")
+        if not quiet:
+            print(f"Make output:\n{result.stdout}")
+            if result.stderr:
+                print(f"Make warnings:\n{result.stderr}")
         binary_source = build_dir / "main"
         
         if not binary_source.exists():
@@ -331,15 +344,17 @@ def ensure_llama_binary(model_name: str = None):
         shutil.copy(binary_source, binary_path)
         if platform.system() != "Windows":
             binary_path.chmod(0o755)
-        print(f"{'bitnet.cpp' if is_bitnet else 'llama.cpp'} binary built and installed to {binary_path}")
+        if not quiet:
+            print(f"{'bitnet.cpp' if is_bitnet else 'llama.cpp'} binary built and installed to {binary_path}")
         return binary_path
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"Failed to build {'bitnet.cpp' if is_bitnet else 'llama.cpp'} with Metal support:")
-        if isinstance(e, subprocess.CalledProcessError):
-            print(f"Error output:\n{e.stderr}")
-        else:
-            print(f"Error: {str(e)}")
-        print("Falling back to CPU-only build...")
+        if not quiet:
+            print(f"Failed to build {'bitnet.cpp' if is_bitnet else 'llama.cpp'} with Metal support:")
+            if isinstance(e, subprocess.CalledProcessError):
+                print(f"Error output:\n{e.stderr}")
+            else:
+                print(f"Error: {str(e)}")
+            print("Falling back to CPU-only build...")
 
     # Fallback to CPU-only build
     try:
@@ -356,13 +371,15 @@ def ensure_llama_binary(model_name: str = None):
                 "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0"
             ])
         result = subprocess.run(cmake_args, check=True, capture_output=True, text=True)
-        print(f"CMake configuration output (CPU-only):\n{result.stdout}")
-        if result.stderr:
-            print(f"CMake warnings (CPU-only):\n{result.stderr}")
+        if not quiet:
+            print(f"CMake configuration output (CPU-only):\n{result.stdout}")
+            if result.stderr:
+                print(f"CMake warnings (CPU-only):\n{result.stderr}")
         result = subprocess.run(["make"], check=True, capture_output=True, text=True)
-        print(f"Make output (CPU-only):\n{result.stdout}")
-        if result.stderr:
-            print(f"Make warnings (CPU-only):\n{result.stderr}")
+        if not quiet:
+            print(f"Make output (CPU-only):\n{result.stdout}")
+            if result.stderr:
+                print(f"Make warnings (CPU-only):\n{result.stderr}")
         binary_source = build_dir / "main"
         
         if not binary_source.exists():
@@ -371,27 +388,29 @@ def ensure_llama_binary(model_name: str = None):
         shutil.copy(binary_source, binary_path)
         if platform.system() != "Windows":
             binary_path.chmod(0o755)
-        print(f"{'bitnet.cpp' if is_bitnet else 'llama.cpp'} CPU-only binary built and installed to {binary_path}")
-        print("Note: This binary uses CPU only (no Metal/GPU acceleration).")
+        if not quiet:
+            print(f"{'bitnet.cpp' if is_bitnet else 'llama.cpp'} CPU-only binary built and installed to {binary_path}")
+            print("Note: This binary uses CPU only (no Metal/GPU acceleration).")
         return binary_path
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"Failed to build {'bitnet.cpp' if is_bitnet else 'llama.cpp'} (CPU-only):")
-        if isinstance(e, subprocess.CalledProcessError):
-            print(f"Error output:\n{e.stderr}")
-        else:
-            print(f"Error: {str(e)}")
-        if platform.system() == "Darwin":
-            print("This may be due to missing Xcode Command Line Tools or incompatible compiler.")
-            print("Ensure Xcode Command Line Tools are installed: 'xcode-select --install'")
-            print("Or install dependencies via Homebrew: 'brew install llvm'")
-            print("If using Homebrew LLVM, update PATH: 'export PATH=\"/opt/homebrew/opt/llvm/bin:$PATH\"'")
-            print("Alternatively, install llama.cpp via Homebrew: 'brew install llama.cpp'")
+        if not quiet:
+            print(f"Failed to build {'bitnet.cpp' if is_bitnet else 'llama.cpp'} (CPU-only):")
+            if isinstance(e, subprocess.CalledProcessError):
+                print(f"Error output:\n{e.stderr}")
+            else:
+                print(f"Error: {str(e)}")
+            if platform.system() == "Darwin":
+                print("This may be due to missing Xcode Command Line Tools or incompatible compiler.")
+                print("Ensure Xcode Command Line Tools are installed: 'xcode-select --install'")
+                print("Or install dependencies via Homebrew: 'brew install llvm'")
+                print("If using Homebrew LLVM, update PATH: 'export PATH=\"/opt/homebrew/opt/llvm/bin:$PATH\"'")
+                print("Alternatively, install llama.cpp via Homebrew: 'brew install llama.cpp'")
         raise RuntimeError(f"Failed to build {'bitnet.cpp' if is_bitnet else 'llama.cpp'}")
     finally:
         os.chdir(HOME_DIR)
         shutil.rmtree(build_dir, ignore_errors=True)
 
-def pull_model(repo_id: str, quant: str = "Q4_K_M"):
+def pull_model(repo_id: str, quant: str = "Q4_K_M", quiet: bool = True):
     init_config()
     model_info = model_map.get(repo_id, {"repo_id": repo_id, "filename": None, "chat_format": "chatml"})
     full_repo = model_info["repo_id"]
@@ -401,13 +420,13 @@ def pull_model(repo_id: str, quant: str = "Q4_K_M"):
     gguf_path = model_dir / filename
 
     if gguf_path.exists():
-        print(f"Model {repo_id} already exists.")
         return str(gguf_path), model_info.get("chat_format", "chatml")
 
     # Ensure appropriate binary
-    ensure_llama_binary(repo_id)
+    ensure_llama_binary(repo_id, quiet=quiet)
 
-    print(f"Downloading {full_repo} ({filename})...")
+    if not quiet:
+        print(f"Downloading {full_repo} ({filename})...")
     try:
         hf_hub_download(repo_id=full_repo, filename=filename, local_dir=model_dir)
     except Exception as e:
@@ -415,7 +434,8 @@ def pull_model(repo_id: str, quant: str = "Q4_K_M"):
         print(f"Check the repo for available files: https://huggingface.co/{full_repo}/tree/main")
         print("Try a different model or quantization (e.g., Q4_0, Q5_K_M).")
         raise
-    print("Download complete!")
+    if not quiet:
+        print("Download complete!")
     return str(gguf_path), model_info.get("chat_format", "chatml")
 
 def list_models():
@@ -508,9 +528,43 @@ def list_models():
     return {"installed": installed, "available": available}
 
 def remove_model(repo_id: str):
-    model_dir = MODELS_DIR / repo_id.split('/')[-1]
-    if model_dir.exists():
-        shutil.rmtree(model_dir)
-        print(f"Removed {repo_id}.")
-    else:
+    """Remove a model by name, finding the actual directory."""
+    # First try to find the model in our model_map to get the repo_id
+    model_info = model_map.get(repo_id)
+    if model_info:
+        # Use the repo_id from model_map
+        repo_id = model_info["repo_id"]
+    
+    # Try different possible directory names
+    possible_dirs = [
+        MODELS_DIR / repo_id.split('/')[-1],  # Original logic
+        MODELS_DIR / repo_id.replace('/', '-'),  # Replace / with -
+    ]
+    
+    # Also try to find by model name in installed models
+    installed_models = list_models()['installed']
+    for model in installed_models:
+        if model['name'] == repo_id:
+            # Find the actual directory by looking for GGUF files
+            for model_dir in MODELS_DIR.iterdir():
+                if model_dir.is_dir() and list(model_dir.glob("*.gguf")):
+                    # Check if this matches our model
+                    gguf_files = list(model_dir.glob("*.gguf"))
+                    if gguf_files:
+                        possible_dirs.append(model_dir)
+                        break
+    
+    # Try to remove any matching directory
+    removed = False
+    for model_dir in possible_dirs:
+        if model_dir.exists():
+            shutil.rmtree(model_dir)
+            print(f"Removed {model_dir.name}.")
+            removed = True
+            break
+    
+    if not removed:
         print(f"Model {repo_id} not found.")
+        print("Available models:")
+        for model in installed_models:
+            print(f"  - {model['name']}")
