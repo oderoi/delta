@@ -21,9 +21,34 @@ DEFAULT_MODEL = "qwen2:0.5b"
 
 # Define model_map at module scope for use in pull_model and list_models
 model_map = {
-    "LFM2:700M": {
+    "LFM2:700m": {
         "repo_id": "LiquidAI/LFM2-700M-GGUF",
         "filename": "LFM2-700M-Q4_K_M.gguf",
+        "chat_format": "chatml"
+    },
+    "LFM2:350m": {
+        "repo_id": "LiquidAI/LFM2-350M-Extract-GGUF",
+        "filename": "LFM2-350M-Extract-F16.gguf",
+        "chat_format": "chatml"
+    },  
+    "LFM2:1.2b": {
+        "repo_id": "LiquidAI/LFM2-1.2B-RAG-GGUF",
+        "filename": "LFM2-1.2B-RAG-Q4_K_M.gguf",
+        "chat_format": "chatml"
+    },
+    "LFM2-VL:1.6b": {
+        "repo_id": "LiquidAI/LFM2-VL-1.6B-GGUF",
+        "filename": "LFM2-VL-1.6B-Q8_0.gguf",
+        "chat_format": "chatml"
+    },
+    "LFM2-VL:450m": {
+        "repo_id": "LiquidAI/LFM2-VL-450M-GGUF",
+        "filename": "LFM2-VL-450M-F16.gguf",
+        "chat_format": "chatml"
+    },
+    "LFM2:8b": {
+        "repo_id": "LiquidAI/LFM2-8B-A1B-GGUF",
+        "filename": "LFM2-8B-A1B-Q4_K_M.gguf",
         "chat_format": "chatml"
     },
     "llama3.1:8b": {
@@ -440,8 +465,14 @@ def pull_model(repo_id: str, quant: str = "Q4_K_M", quiet: bool = True):
 
 def list_models():
     """Return installed and available models with detailed metadata."""
+
     model_metadata = {
-        "LFM2:700M": {"family": "lfm", "parameters": "742M", "quant": "Q4_K_M"},
+        "LFM2:700m": {"family": "lfm", "parameters": "742M", "quant": "Q4_K_M"},
+        "LFM2:350m": {"family": "lfm", "parameters": "354M", "quant": "F16"},
+        "LFM2:1.2b": {"family": "lfm", "parameters": "1.17B", "quant": "Q4_K_M"},
+        "LFM2-VL:1.6b": {"family": "lfm", "parameters": "1.17B", "quant": "Q8_0"},
+        "LFM2-VL:450m": {"family": "lfm", "parameters": "354M", "quant": "F16"},
+        "LFM2:8b": {"family": "lfm", "parameters": "8.34B", "quant": "Q4_K_M"},
         "llama3.1:8b": {"family": "llama", "parameters": "8.0B", "quant": "Q4_K_M"},
         "llama3.2:3b": {"family": "llama", "parameters": "3.2B", "quant": "Q4_K_M"},
         "llama3.2:1b": {"family": "llama", "parameters": "1.2B", "quant": "Q4_K_M"},
@@ -493,7 +524,12 @@ def list_models():
 
     available = [
         {"name": k, "repo_id": v["repo_id"], "quant": model_metadata[k]["quant"], "size": v["size"]} for k, v in {
-            "LFM2:700M": {"repo_id": "LiquidAI/LFM2-700M-GGUF", "size": "0.4 GB"},
+            "LFM2:700m": {"repo_id": "LiquidAI/LFM2-700M-GGUF", "size": "0.4 GB"},
+            "LFM2:350m": {"repo_id": "LiquidAI/LFM2-350M-Extract-GGUF", "size": "711 MB"},
+            "LFM2:1.2b": {"repo_id": "LiquidAI/LFM2-1.2B-RAG-GGUF", "size": "731 MB"},
+            "LFM2-VL:1.6b": {"repo_id": "LiquidAI/LFM2-VL-1.6B-GGUF", "size": "1.25 GB"},
+            "LFM2-VL:450m": {"repo_id": "LiquidAI/LFM2-VL-450M-GGUF", "size": "711 MB"},
+            "LFM2:8b": {"repo_id": "LiquidAI/LFM2-8B-A1B-GGUF", "size": "5.04 GB"},
             "llama3.1:8b": {"repo_id": "unsloth/Llama-3.1-8B-Instruct-GGUF", "size": "4.7 GB"},
             "llama3.2:3b": {"repo_id": "unsloth/Llama-3.2-3B-Instruct-GGUF", "size": "1.8 GB"},
             "llama3.2:1b": {"repo_id": "unsloth/Llama-3.2-1B-Instruct-GGUF", "size": "0.8 GB"},

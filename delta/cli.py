@@ -48,47 +48,32 @@ def pull(model):
     print(f"Model downloaded to {model_path}")
 
 @cli.command()
-def list():
-    """List installed and available models."""
+@click.option('--installed', '-i', 'only_installed', is_flag=True, help='Show only installed models')
+@click.option('--available', '-a', 'only_available', is_flag=True, help='Show only available models')
+def list(only_installed: bool, only_available: bool):
+    """List installed and/or available models."""
     models = list_models()
-    
-    # COMMENTED OUT: Original implementation with detailed formatting
-    # print("\n📋 Installed Models:")
-    # if models['installed']:
-    #     table = [[
-    #         m['name'],
-    #         m['size'],
-    #         m['modified_at'],
-    #         # m['format'],
-    #         # m['family'],
-    #         # m['parameters'],
-    #         # m['quant']
-    #     ] for m in models['installed']]
-    #     print(tabulate(table, headers=['Model Name', 'Size', 'Modified At', 'Format', 'Family', 'Parameters', 'Quantization'], tablefmt='grid'))
-    # else:
-    #     print("No models installed.")
 
-    # print("\n📋 Available Models (use 'delta pull <name>'):")
-    # # table = [[m['name'], m['repo_id'], m['quant']] for m in models['available']]
-    # # print(tabulate(table, headers=['Name', 'Hugging Face Repository', 'Quantization'], tablefmt='grid'))
-    # table = [[m['name'], m['size']] for m in models['available']]
-    # print(tabulate(table, headers=['Name', 'Size'], tablefmt='grid'))
-    
-    # NEW SIMPLIFIED IMPLEMENTATION
-    print("\nInstalled Models:")
-    if models['installed']:
-        table = [[
-            m['name'],
-            m['size'],
-            m['modified_at']
-        ] for m in models['installed']]
-        print(tabulate(table, headers=['Model Name', 'Size', 'Modified At'], tablefmt='grid'))
-    else:
-        print("No models installed.")
+    # If no filters provided, show both
+    show_installed = only_installed or not (only_installed or only_available)
+    show_available = only_available or not (only_installed or only_available)
 
-    print("\nAvailable Models (use 'delta pull <name>'):")
-    table = [[m['name'], m['size']] for m in models['available']]
-    print(tabulate(table, headers=['Model Name', 'Size'], tablefmt='grid'))
+    if show_installed:
+        print("\nInstalled Models:")
+        if models['installed']:
+            table = [[
+                m['name'],
+                m['size'],
+                m['modified_at']
+            ] for m in models['installed']]
+            print(tabulate(table, headers=['Model Name', 'Size', 'Modified At'], tablefmt='grid'))
+        else:
+            print("No models installed.")
+
+    if show_available:
+        print("\nAvailable Models (use 'delta pull <name>'):")
+        table = [[m['name'], m['size']] for m in models['available']]
+        print(tabulate(table, headers=['Model Name', 'Size'], tablefmt='grid'))
 
 @cli.command()
 @click.argument('model')
@@ -108,13 +93,30 @@ def check():
 @cli.command()
 @click.option('--limit', '-l', type=int, default=5, help='Number of recent sessions to show')
 @click.option('--session', '-s', help='Show specific session by ID')
-def hist(limit, session):
+@click.option('--all', 'show_all', is_flag=True, help='Show all available history')
+def hist(limit, session, show_all):
     """View chat history."""
     from .chat import load_history
     history = load_history()
     
     if not history:
         print("No chat history found.")
+        return
+    
+    if show_all:
+        # Show all sessions with requested format
+        for sess in history:
+            print(f"Session: {sess['id']} ({sess['timestamp']})")
+            if not sess['messages']:
+                print("user: ")
+                print("delta(response): ")
+            else:
+                for msg in sess['messages']:
+                    user_text = msg.get('user', '') or ''
+                    assistant_text = msg.get('assistant', '') or ''
+                    print(f"user: {user_text}")
+                    print(f"delta(response): {assistant_text}")
+            print("-" * 50)
         return
     
     if session:
